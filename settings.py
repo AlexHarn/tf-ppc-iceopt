@@ -25,17 +25,11 @@ N_LAYERS = 171
 N_DOMS = 5160
 
 # --------------------------------- Training ----------------------------------
-# One step includes one simulation of FLASHES_PER_STEP flasher board flashes
-# using PPC. Each
-
+INITIAL_ABS = [100 for i in range(N_LAYERS)]
 MAX_STEPS = 100000000
-BATCHES_PER_STEP = 10
-PHOTONS_PER_FLASH = int(10**7)
-FLASHES_PER_STEP = 60
+PHOTONS_PER_FLASH = 100000
 
 # -------------------------------- Optimizer ----------------------------------
-# How many times to reuse the same data for optimization
-OPTIMIZER_STEPS_PER_SIMULATION = 1
 # The initial learning rate
 INITIAL_LEARNING_RATE = .1
 # True or False to activate/deactivate learning rate decay
