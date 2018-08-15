@@ -1,22 +1,28 @@
 import tensorflow as tf
 
+
+RANDOM_SEED = False  # seed or False
 # -------------------------------- TensorFlow ---------------------------------
 TF_FLOAT_PRECISION = tf.float32
-TF_CPU_ONLY = False
-TF_RANDOM_SEED = False  # seed or False
+TF_CPU_ONLY = True
 
 # ----------------------------------- PPC -------------------------------------
 # The following sets the path to the modified PPC executable, which simulates
 # flasher runs without absorption and logs the traveled distance for each
 # photon in each layer. It is assumed to be in an ice/ folder with
 # configuration files.
-PATH_PPC_NO_ABS = "~/PPC_absorb_later/ice/ppc"
+PATH_NO_ABS_PPC = "/home/alex/PPC_absorb_later/ice/ppc"
 
 # The following sets the path to the unmodified PPC executable, which is used
 # to simulate fake data to fit to. It is assumed to be in an ice/ folder, which
 # contains the necessary configuration files, including the ice parameters
 # which we try to recover.
-PATH_REAL_PPC = "~/PPC_real/ice/ppc"
+PATH_REAL_PPC = "/home/alex/PPC_real/ice/ppc"
+
+# The number of layers to fit, which needs to be the same as in the respective
+# PPC configuration.
+N_LAYERS = 171
+N_DOMS = 5160
 
 # --------------------------------- Training ----------------------------------
 # One step includes one simulation of FLASHES_PER_STEP flasher board flashes
