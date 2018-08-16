@@ -1,5 +1,5 @@
 import tensorflow as tf
-
+import numpy as np
 
 RANDOM_SEED = False  # seed or False
 # -------------------------------- TensorFlow ---------------------------------
@@ -11,13 +11,13 @@ TF_CPU_ONLY = True
 # flasher runs without absorption and logs the traveled distance for each
 # photon in each layer. It is assumed to be in an ice/ folder with
 # configuration files.
-PATH_NO_ABS_PPC = "/home/alex/PPC_absorb_later/ice/ppc"
+PATH_NO_ABS_PPC = "/home/alexanderharnisch/PPC_absorb_later/ice/ppc_gpu"
 
 # The following sets the path to the unmodified PPC executable, which is used
 # to simulate fake data to fit to. It is assumed to be in an ice/ folder, which
 # contains the necessary configuration files, including the ice parameters
 # which we try to recover.
-PATH_REAL_PPC = "/home/alex/PPC_real/ice/ppc"
+PATH_REAL_PPC = "/home/alexanderharnisch/PPC_real/ice/ppc_gpu"
 
 # The number of layers to fit, which needs to be the same as in the respective
 # PPC configuration.
@@ -27,11 +27,11 @@ N_DOMS = 5160
 # --------------------------------- Training ----------------------------------
 INITIAL_ABS = [100 for i in range(N_LAYERS)]
 MAX_STEPS = 100000000
-PHOTONS_PER_FLASH = 100000
+PHOTONS_PER_FLASH = int(10**7)
 
 # -------------------------------- Optimizer ----------------------------------
 # The initial learning rate
-INITIAL_LEARNING_RATE = .1
+INITIAL_LEARNING_RATE = 0.000001
 # True or False to activate/deactivate learning rate decay
 LEARNING_DECAY = False
 # Decay modes: Linear or Exponential

@@ -1,4 +1,6 @@
 import tensorflow as tf
+from tqdm import trange
+
 import settings
 
 
@@ -43,9 +45,10 @@ class Model:
             axis=1))
 
         hitlist = []
-        for i in range(settings.N_DOMS):
-            print(i)
-            hitlist.append(tf.reduce_sum(tf.where(i == dom_ids, p,
+        print("Building hitlist subgraph:")
+        for i in trange(settings.N_DOMS, leave=False):
+            hit_mask = tf.equal(dom_ids, i)
+            hitlist.append(tf.reduce_sum(tf.where(hit_mask, p,
                                                   tf.zeros_like(p))))
 
         return tf.stack(hitlist)

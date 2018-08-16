@@ -106,7 +106,8 @@ class PPCWrapper:
 
         p = subprocess.Popen([self._ppc, str(string), str(dom),
                               str(n_photons)],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE,
                              cwd=os.path.dirname(self._real_ppc))
         out, err = p.communicate()
         df = pd.read_csv(pd.compat.StringIO(out.decode()),
@@ -115,7 +116,6 @@ class PPCWrapper:
         df = df.drop(columns=[2, 3])
 
         # convert string, DOM format to single DOM id
-        for idx, photon in df.iterrows():
-            df.ix[idx, 0] = int(60*(photon[0] - 1) + photon[1] - 1)
-        df = df.drop(columns=[1])
-        return df.values
+        a = df.values
+        a[:, 1] = 60*(a[:, 0] - 1) + a[:, 1] - 1
+        return a[:, 1:]

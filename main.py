@@ -9,6 +9,7 @@ from ppc_wrapper import PPCWrapper
 import settings
 
 # ------------------------------ Initialization -------------------------------
+print("Initializing...")
 # set random seeds
 if settings.RANDOM_SEED:
     tf.set_random_seed(settings.RANDOM_SEED)
@@ -29,7 +30,6 @@ ppc = PPCWrapper(settings.PATH_NO_ABS_PPC, settings.PATH_REAL_PPC)
 
 # define hitlists
 hits_true = tf_data_hits
-
 hits_pred = model.tf_expected_hits(tf_simulated_photons)
 
 # Dimas likelihood, take the logarithm for stability
@@ -82,28 +82,30 @@ if __name__ == '__main__':
 
     # initialize all variables
     session.run(tf.global_variables_initializer())
+
     # --------------------------------- Run -----------------------------------
     # initialize the logger
     logger = Logger(logdir='./log/', overwrite=True)
     logger.register_variables(['loss'] + ['l_abs_pred_{}'.format(i) for i in
                                           range(settings.N_LAYERS)],
-                              print_all=True)
+                              print_variables=['loss'])
     logger.message("Starting...")
 
     for step in range(1, settings.MAX_STEPS + 1):
-
-        # For now we simply flash all DOMs on string 60 in each step.
-        data_hits = ppc.simulate_flash(60, 1, settings.PHOTONS_PER_FLASH)
-        simulated_photons = \
-            ppc.simulate_flash_no_abs(60, 1, settings.PHOTONS_PER_FLASH)
-        for dom in trange(2, 61):
-            data_hits += ppc.simulate_flash(60, dom,
+        logger.message("Running PPC to flash DOMs...", step)
+        # Flash DOMs on string 63
+        data_hits = np.zeros(5160, dtype=np.int32)
+        simulated_photons = []
+        for dom in trange(27, 35, leave=False):
+            data_hits += ppc.simulate_flash(63, dom,
                                             settings.PHOTONS_PER_FLASH)
-            batch = ppc.simulate_flash_no_abs(60, dom,
-                                              settings.PHOTONS_PER_FLASH)
-            simulated_photons = np.concatenate((simulated_photons, batch))
+            simulated_photons.append(
+                ppc.simulate_flash_no_abs(63, dom, settings.PHOTONS_PER_FLASH))
+
+        simulated_photons = np.concatenate(simulated_photons)
 
         # compute and apply gradients and get the loss with this data
+        logger.message("Running TensorFlow session to get gradients...", step)
         step_loss = session.run([optimize, loss],
                                 feed_dict={tf_data_hits: data_hits,
                                            tf_simulated_photons:

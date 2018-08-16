@@ -124,7 +124,7 @@ class Logger:
             store = pd.HDFStore(self._logdir+'variables.hdf5')
 
             store.append('Variables', self._data_buffer, format='t',
-                         data_columns=True)
+                         index=False)
             store.close()
         except Exception as e:
             self.message("Logger could not write to file:", str(e))
