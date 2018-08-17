@@ -108,7 +108,7 @@ class PPCWrapper:
                               str(n_photons)],
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
-                             cwd=os.path.dirname(self._real_ppc))
+                             cwd=os.path.dirname(self._ppc))
         out, err = p.communicate()
         df = pd.read_csv(pd.compat.StringIO(out.decode()),
                          header=None).fillna(0.)
