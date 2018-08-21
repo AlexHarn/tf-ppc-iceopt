@@ -50,5 +50,6 @@ class Model:
             hit_mask = tf.equal(dom_ids, i)
             hitlist.append(tf.reduce_sum(tf.where(hit_mask, p,
                                                   tf.zeros_like(p))))
+        print("Done.")
 
         return tf.stack(hitlist)

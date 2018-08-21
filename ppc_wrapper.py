@@ -61,8 +61,8 @@ class PPCWrapper:
         i = 60*(string - 1) + DOM - 1 is the number of hits for the specific
         DOM.
         """
-        assert isinstance(string, int) and string >= 1 and string <= 86
-        assert isinstance(dom, int) and dom >= 1 and dom <= 60
+        assert round(string) == string and string >= 1 and string <= 86
+        assert round(dom) == dom and dom >= 1 and dom <= 60
 
         p = subprocess.Popen([self._real_ppc, str(string), str(dom),
                               str(n_photons)],
@@ -101,8 +101,8 @@ class PPCWrapper:
         DOM. The remaining columns contain the travel distance in the
         respective layer. So there are N_LAYERS + 1 columns.
         """
-        assert isinstance(string, int) and string >= 1 and string <= 86
-        assert isinstance(dom, int) and dom >= 1 and dom <= 60
+        assert round(string) == string and string >= 1 and string <= 86
+        assert round(dom) == dom and dom >= 1 and dom <= 60
 
         p = subprocess.Popen([self._ppc, str(string), str(dom),
                               str(n_photons)],

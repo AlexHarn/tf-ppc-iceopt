@@ -1,7 +1,7 @@
 from __future__ import division
 import tensorflow as tf
 import numpy as np
-from tqdm import trange
+import tqdm
 
 from logger import Logger
 from model import Model
@@ -93,10 +93,11 @@ if __name__ == '__main__':
 
     for step in range(1, settings.MAX_STEPS + 1):
         logger.message("Running PPC to flash DOMs...", step)
-        # Flash DOMs on string 63
+        # Flash random DOMs on string 63
+        doms = np.random.randint(1, 61, 6)
         data_hits = np.zeros(5160, dtype=np.int32)
         simulated_photons = []
-        for dom in trange(27, 35, leave=False):
+        for dom in tqdm.tqdm(doms, leave=False):
             data_hits += ppc.simulate_flash(63, dom,
                                             settings.PHOTONS_PER_FLASH)
             simulated_photons.append(
