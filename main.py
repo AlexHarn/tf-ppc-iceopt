@@ -1,11 +1,12 @@
 from __future__ import division
 import tensorflow as tf
 import numpy as np
-import tqdm
+from tqdm import tqdm
 
 from logger import Logger
 from model import Model
 from ppc_wrapper import PPCWrapper
+from data_handler import DataHandler
 import settings
 
 # ------------------------------ Initialization -------------------------------
@@ -24,9 +25,6 @@ tf_simulated_photons = tf.placeholder(dtype=settings.TF_FLOAT_PRECISION,
 
 # initialize the model
 model = Model(settings.INITIAL_ABS)
-
-# initialize the PPC wrapper
-ppc = PPCWrapper(settings.PATH_NO_ABS_PPC, settings.PATH_REAL_PPC)
 
 # define hitlists
 hits_true = tf_data_hits
@@ -66,11 +64,41 @@ elif settings.OPTIMIZER == 'GradientDescent':
 else:
     raise ValueError(settings.OPTIMIZER+" is not a supported optimizer!")
 
-# create operation to minimize the loss
-optimize = optimizer.minimize(loss)
-
 # grab all trainable variables
 trainable_variables = tf.trainable_variables()
+
+# define variables to save the gradients in each batch
+accumulated_gradients = [tf.Variable(tf.zeros_like(tv.initialized_value()),
+                                     trainable=False) for tv in
+                         trainable_variables]
+
+# define operation to reset the accumulated gradients to zero
+reset_gradients = [gradient.assign(tf.zeros_like(gradient)) for gradient in
+                   accumulated_gradients]
+
+# compute the gradients
+gradients = optimizer.compute_gradients(loss, trainable_variables)
+
+# Note: Gradients is a list of tuples containing the gradient and the
+# corresponding variable so gradient[0] is the actual gradient. Also divide
+# the gradients by BATCHES_PER_STEP so the learning rate still refers to
+# steps not batches.
+
+# define operation to evaluate a batch and accumulate the gradients
+evaluate_batch = [
+    accumulated_gradient.assign_add(gradient[0]/settings.BATCHES_PER_STEP)
+    for accumulated_gradient, gradient in zip(accumulated_gradients,
+                                              gradients)]
+
+# define operation to apply the gradients
+apply_gradients = optimizer.apply_gradients([
+    (accumulated_gradient, gradient[1]) for accumulated_gradient, gradient
+    in zip(accumulated_gradients, gradients)])
+
+# define variable and operations to track the average batch loss
+average_loss = tf.Variable(0., trainable=False)
+update_loss = average_loss.assign_add(loss/settings.BATCHES_PER_STEP)
+reset_loss = average_loss.assign(0.)
 
 if __name__ == '__main__':
     if settings.TF_CPU_ONLY:
@@ -83,34 +111,41 @@ if __name__ == '__main__':
     # initialize all variables
     session.run(tf.global_variables_initializer())
 
-    # --------------------------------- Run -----------------------------------
     # initialize the logger
     logger = Logger(logdir='./log/', overwrite=True)
     logger.register_variables(['loss'] + ['l_abs_pred_{}'.format(i) for i in
                                           range(settings.N_LAYERS)],
                               print_variables=['loss'])
+    # initialize the PPC wrapper
+    ppc = PPCWrapper(settings.PATH_NO_ABS_PPC, settings.PATH_REAL_PPC)
+
+    # initialize the data handler
+    data_handler = DataHandler(ppc)
+
+    # --------------------------------- Run -----------------------------------
     logger.message("Starting...")
 
     for step in range(1, settings.MAX_STEPS + 1):
         logger.message("Running PPC to flash DOMs...", step)
-        # Flash random DOMs on string 63
-        doms = np.random.randint(1, 61, 6)
-        data_hits = np.zeros(5160, dtype=np.int32)
-        simulated_photons = []
-        for dom in tqdm.tqdm(doms, leave=False):
-            data_hits += ppc.simulate_flash(63, dom,
-                                            settings.PHOTONS_PER_FLASH)
-            simulated_photons.append(
-                ppc.simulate_flash_no_abs(63, dom, settings.PHOTONS_PER_FLASH))
-
-        simulated_photons = np.concatenate(simulated_photons)
+        # Flash all DOMs on string 63
+        batches = data_handler.generate_string_batches(
+            63, settings.BATCHES_PER_STEP, settings.PHOTONS_PER_FLASH)
 
         # compute and apply gradients and get the loss with this data
         logger.message("Running TensorFlow session to get gradients...", step)
-        step_loss = session.run([optimize, loss],
-                                feed_dict={tf_data_hits: data_hits,
-                                           tf_simulated_photons:
-                                           simulated_photons})[1]
+        for batch in tqdm(batches, leave=False):
+            session.run([evaluate_batch, update_loss],
+                        feed_dict={tf_data_hits: batch[0],
+                                   tf_simulated_photons: batch[1]})
+
+        # apply accumulated gradients
+        session.run(apply_gradients)
+
+        # get loss
+        step_loss = session.run(average_loss)
+
+        # reset variables for next step
+        session.run([reset_gradients, reset_loss])
 
         # get updated parameters
         result = session.run(model.l_abs)

@@ -1,5 +1,4 @@
 import tensorflow as tf
-import numpy as np
 
 RANDOM_SEED = False  # seed or False
 # -------------------------------- TensorFlow ---------------------------------
@@ -28,10 +27,11 @@ N_DOMS = 5160
 INITIAL_ABS = [100 for i in range(N_LAYERS)]
 MAX_STEPS = 100000000
 PHOTONS_PER_FLASH = int(10**7)
+BATCHES_PER_STEP = 15
 
 # -------------------------------- Optimizer ----------------------------------
 # The initial learning rate
-INITIAL_LEARNING_RATE = 5
+INITIAL_LEARNING_RATE = 10
 # True or False to activate/deactivate learning rate decay
 LEARNING_DECAY = False
 # Decay modes: Linear or Exponential
