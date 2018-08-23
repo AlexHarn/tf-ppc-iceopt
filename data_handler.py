@@ -1,5 +1,6 @@
 import numpy as np
 from tqdm import tqdm
+import settings
 
 
 class DataHandler:
@@ -46,7 +47,7 @@ class DataHandler:
         batches = []
         with tqdm(total=60, leave=False) as progress:
             for doms in dom_batches:
-                data_hits = np.zeros(5160, dtype=np.int32)
+                data_hits = np.zeros(settings.N_DOMS, dtype=np.int32)
                 simulated_photons = []
                 for dom in doms:
                     data_hits += self._ppc.simulate_flash(63, dom,
@@ -57,5 +58,6 @@ class DataHandler:
                     progress.update(1)
 
                 simulated_photons = np.concatenate(simulated_photons)
-                batches.append([data_hits, simulated_photons])
+                batches.append({'data_hits': data_hits,
+                                'simulated_photons': simulated_photons})
         return batches

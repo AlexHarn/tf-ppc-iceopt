@@ -3,6 +3,7 @@ import os
 import subprocess
 import time
 import pandas as pd
+import numpy as np
 from datetime import datetime
 from shutil import copyfile
 
@@ -182,11 +183,11 @@ class Logger:
         Parameters
         ----------
         message : String
-            The message to log
+            The message to log.
         step : Integer
             Current training step or None
         printing : Boolean
-            If true the message is also printed to the screen
+            If true the message is also printed to the screen.
         """
         session_time = datetime.utcnow() - self._start_time
         hours, remainder = divmod(session_time.seconds, 3600)
@@ -203,6 +204,44 @@ class Logger:
         self._session_buffer += line
         if printing:
             print(line[:-1])
+
+    def save_hitlists(self, step, hits_true, hits_pred):
+        """
+        Saves the real and predicted DOM response for the given step. This is a
+        quick and dirty fix for debugging purposes. Sadly adding over 2*5160
+        columns to the variables hdf5 store is just too much.
+
+        Parameters
+        ----------
+        step : Integer
+            The current training step.
+        hits_true : Integer Array
+            The real DOM response.
+        hits_pred : Float Array
+            The predicted DOM response.
+        """
+        logdir = self._logdir + 'hitlist_log/'
+
+        if step == 1:
+            # check if the hitlist logdir already exists or create it
+            if os.path.exists(logdir):
+                # clean the existing hitlist logdir if overwrite is True
+                for the_file in os.listdir(logdir):
+                    file_path = os.path.join(logdir, the_file)
+                    try:
+                        if os.path.isfile(file_path):
+                            os.unlink(file_path)
+                    except Exception as e:
+                        print(e)
+                if os.path.isfile(logdir+'session.log'):
+                    os.unlink(logdir+'session.log')
+                if os.path.isfile(logdir+'variables.hdf5'):
+                    os.unlink(logdir+'variables.hdf5')
+            else:
+                os.makedirs(logdir)
+        # save the hitlists to files
+        np.savetxt(logdir + '{}_true.hits'.format(step), hits_true, fmt='%u')
+        np.savetxt(logdir + '{}_pred.hits'.format(step), hits_pred)
 
 
 # -------------------------------- Exceptions ---------------------------------

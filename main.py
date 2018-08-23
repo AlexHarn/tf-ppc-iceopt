@@ -131,12 +131,23 @@ if __name__ == '__main__':
         batches = data_handler.generate_string_batches(
             63, settings.BATCHES_PER_STEP, settings.PHOTONS_PER_FLASH)
 
+        # initialize arrays to log real and predicted hits
+        step_hits_true = np.zeros(settings.N_DOMS, dtype=np.int32)
+        step_hits_pred = np.zeros(settings.N_DOMS, dtype=np.float)
+
         # compute and apply gradients and get the loss with this data
         logger.message("Running TensorFlow session to get gradients...", step)
         for batch in tqdm(batches, leave=False):
-            session.run([evaluate_batch, update_loss],
-                        feed_dict={tf_data_hits: batch[0],
-                                   tf_simulated_photons: batch[1]})
+            batch_hits_pred = \
+                session.run([evaluate_batch, update_loss, hits_pred],
+                            feed_dict={tf_data_hits:
+                                       batch['data_hits'],
+                                       tf_simulated_photons:
+                                       batch['simulated_photons']})[2]
+
+            # add the hits up for logging
+            step_hits_true += batch['data_hits']
+            step_hits_pred += batch_hits_pred
 
         # apply accumulated gradients
         session.run(apply_gradients)
@@ -149,7 +160,10 @@ if __name__ == '__main__':
 
         # get updated parameters
         result = session.run(model.l_abs)
+
+        # log everything
         logger.log(step, [step_loss] + result.tolist())
+        logger.save_hitlists(step, step_hits_true, step_hits_pred)
 
         if step % settings.WRITE_INTERVAL == 0:
             logger.write()
