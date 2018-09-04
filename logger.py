@@ -190,7 +190,7 @@ class Logger:
             If true the message is also printed to the screen.
         """
         session_time = datetime.utcnow() - self._start_time
-        hours, remainder = divmod(session_time.seconds, 3600)
+        hours, remainder = divmod(int(session_time.total_seconds()), 3600)
         minutes, seconds = divmod(remainder, 60)
 
         if step:
