@@ -97,7 +97,7 @@ apply_gradients = optimizer.apply_gradients([
 
 # define variable and operations to track the average batch loss
 average_loss = tf.Variable(0., trainable=False)
-update_loss = average_loss.assign_add(loss/settings.BATCHES_PER_STEP)
+update_loss = average_loss.assign_add(loss)
 reset_loss = average_loss.assign(0.)
 
 if __name__ == '__main__':
@@ -125,45 +125,50 @@ if __name__ == '__main__':
     # --------------------------------- Run -----------------------------------
     logger.message("Starting...")
 
-    for step in range(1, settings.MAX_STEPS + 1):
-        logger.message("Running PPC to flash DOMs...", step)
+    for global_step in range(settings.MAX_STEPS):
+        logger.message("Running PPC to flash DOMs...",
+                       global_step*settings.OPTIMIZER_STEPS_PER_SIMULATION)
         # Flash all DOMs on string 63
         batches = data_handler.generate_string_batches(
             63, settings.BATCHES_PER_STEP, settings.PHOTONS_PER_FLASH)
 
-        # initialize arrays to log real and predicted hits
-        step_hits_true = np.zeros(settings.N_DOMS, dtype=np.int32)
-        step_hits_pred = np.zeros(settings.N_DOMS, dtype=np.float)
+        for optimizer_step in range(settings.OPTIMIZER_STEPS_PER_SIMULATION):
+            # initialize arrays to log real and predicted hits
+            step_hits_true = np.zeros(settings.N_DOMS, dtype=np.int32)
+            step_hits_pred = np.zeros(settings.N_DOMS, dtype=np.float)
 
-        # compute and apply gradients and get the loss with this data
-        logger.message("Running TensorFlow session to get gradients...", step)
-        for batch in tqdm(batches, leave=False):
-            batch_hits_pred = \
-                session.run([evaluate_batch, update_loss, hits_pred],
-                            feed_dict={tf_data_hits:
-                                       batch['data_hits'],
-                                       tf_simulated_photons:
-                                       batch['simulated_photons']})[2]
+            step = global_step*settings.OPTIMIZER_STEPS_PER_SIMULATION \
+                + optimizer_step + 1
+            # compute and apply gradients and get the loss with this data
+            logger.message("Running TensorFlow session to get gradients...",
+                           step)
+            for batch in tqdm(batches, leave=False):
+                batch_hits_pred = \
+                    session.run([evaluate_batch, update_loss, hits_pred],
+                                feed_dict={tf_data_hits:
+                                           batch['data_hits'],
+                                           tf_simulated_photons:
+                                           batch['simulated_photons']})[2]
 
-            # add the hits up for logging
-            step_hits_true += batch['data_hits']
-            step_hits_pred += batch_hits_pred
+                # add the hits up for logging
+                step_hits_true += batch['data_hits']
+                step_hits_pred += batch_hits_pred
 
-        # apply accumulated gradients
-        session.run(apply_gradients)
+            # apply accumulated gradients
+            session.run(apply_gradients)
 
-        # get loss
-        step_loss = session.run(average_loss)
+            # get loss
+            step_loss = session.run(average_loss)
 
-        # reset variables for next step
-        session.run([reset_gradients, reset_loss])
+            # reset variables for next step
+            session.run([reset_gradients, reset_loss])
 
-        # get updated parameters
-        result = session.run(model.l_abs)
+            # get updated parameters
+            result = session.run(model.l_abs)
 
-        # log everything
-        logger.log(step, [step_loss] + result.tolist())
-        logger.save_hitlists(step, step_hits_true, step_hits_pred)
+            # log everything
+            logger.log(step, [step_loss] + result.tolist())
+            logger.save_hitlists(step, step_hits_true, step_hits_pred)
 
         if step % settings.WRITE_INTERVAL == 0:
             logger.write()
