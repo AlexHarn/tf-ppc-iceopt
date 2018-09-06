@@ -27,11 +27,13 @@ N_DOMS = 5160
 INITIAL_ABS = [100 for i in range(N_LAYERS)]
 MAX_STEPS = 100000000
 PHOTONS_PER_FLASH = int(10**7)
-BATCHES_PER_STEP = 15
+BATCHES_PER_STEP = 45
 
 # -------------------------------- Optimizer ----------------------------------
 # The initial learning rate
-INITIAL_LEARNING_RATE = 10
+INITIAL_LEARNING_RATE = 1
+# The number of optimizer steps to perform per simulation
+OPTIMIZER_STEPS_PER_SIMULATION = 30
 # True or False to activate/deactivate learning rate decay
 LEARNING_DECAY = False
 # Decay modes: Linear or Exponential
