@@ -50,10 +50,10 @@ class DataHandler:
                 data_hits = np.zeros(settings.N_DOMS, dtype=np.int32)
                 simulated_photons = []
                 for dom in doms:
-                    data_hits += self._ppc.simulate_flash(63, dom,
+                    data_hits += self._ppc.simulate_flash(string, dom,
                                                           photons_per_flash)
                     simulated_photons.append(
-                        self._ppc.simulate_flash_no_abs(63, dom,
+                        self._ppc.simulate_flash_no_abs(string, dom,
                                                         photons_per_flash))
                     progress.update(1)
 
