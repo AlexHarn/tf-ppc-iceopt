@@ -1,7 +1,6 @@
 from __future__ import division
 import tensorflow as tf
 import numpy as np
-from tqdm import tqdm
 
 from logger import Logger
 from model import Model
@@ -17,11 +16,25 @@ if settings.RANDOM_SEED:
     np.random.seed(settings.RANDOM_SEED)
 
 # define placeholders
-tf_data_hits = tf.placeholder(dtype=settings.TF_FLOAT_PRECISION,
-                              shape=(settings.N_DOMS))
+tf_data_hits_placeholder = tf.placeholder(dtype=settings.TF_FLOAT_PRECISION,
+                                          shape=(settings.N_DOMS))
 
-tf_simulated_photons = tf.placeholder(dtype=settings.TF_FLOAT_PRECISION,
-                                      shape=(None, settings.N_LAYERS + 1))
+tf_simulated_photons_placeholder = \
+        tf.placeholder(dtype=settings.TF_FLOAT_PRECISION,
+                       shape=(settings.TF_HITLIST_LEN, settings.N_LAYERS + 1))
+
+# define data variables
+tf_data_hits = tf.get_variable("data_hits", dtype=settings.TF_FLOAT_PRECISION,
+                               shape=(settings.N_DOMS), trainable=False)
+tf_simulated_photons = tf.get_variable("simulated_photons",
+                                       dtype=settings.TF_FLOAT_PRECISION,
+                                       shape=(settings.TF_HITLIST_LEN,
+                                              settings.N_LAYERS + 1),
+                                       trainable=False)
+
+# define operations to initialize data variables
+init_data = [tf_data_hits.assign(tf_data_hits_placeholder),
+             tf_simulated_photons.assign(tf_simulated_photons_placeholder)]
 
 # initialize the model
 model = Model(settings.INITIAL_ABS)
@@ -64,41 +77,8 @@ elif settings.OPTIMIZER == 'GradientDescent':
 else:
     raise ValueError(settings.OPTIMIZER+" is not a supported optimizer!")
 
-# grab all trainable variables
-trainable_variables = tf.trainable_variables()
-
-# define variables to save the gradients in each batch
-accumulated_gradients = [tf.Variable(tf.zeros_like(tv.initialized_value()),
-                                     trainable=False) for tv in
-                         trainable_variables]
-
-# define operation to reset the accumulated gradients to zero
-reset_gradients = [gradient.assign(tf.zeros_like(gradient)) for gradient in
-                   accumulated_gradients]
-
-# compute the gradients
-gradients = optimizer.compute_gradients(loss, trainable_variables)
-
-# Note: Gradients is a list of tuples containing the gradient and the
-# corresponding variable so gradient[0] is the actual gradient. Also divide
-# the gradients by BATCHES_PER_STEP so the learning rate still refers to
-# steps not batches.
-
-# define operation to evaluate a batch and accumulate the gradients
-evaluate_batch = [
-    accumulated_gradient.assign_add(gradient[0]/settings.BATCHES_PER_STEP)
-    for accumulated_gradient, gradient in zip(accumulated_gradients,
-                                              gradients)]
-
-# define operation to apply the gradients
-apply_gradients = optimizer.apply_gradients([
-    (accumulated_gradient, gradient[1]) for accumulated_gradient, gradient
-    in zip(accumulated_gradients, gradients)])
-
-# define variable and operations to track the average batch loss
-average_loss = tf.Variable(0., trainable=False)
-update_loss = average_loss.assign_add(loss)
-reset_loss = average_loss.assign(0.)
+# create operation to optimize
+optimize = optimizer.minimize(loss)
 
 if __name__ == '__main__':
     if settings.TF_CPU_ONLY:
@@ -128,47 +108,36 @@ if __name__ == '__main__':
     for global_step in range(settings.MAX_STEPS):
         logger.message("Running PPC to flash DOMs...",
                        global_step*settings.OPTIMIZER_STEPS_PER_SIMULATION)
-        # Flash all DOMs on string 63
-        batches = data_handler.generate_string_batches(
-            63, settings.BATCHES_PER_STEP, settings.PHOTONS_PER_FLASH)
+        # Flash all DOMs on string 36
+        data = data_handler.generate_string_batch(36,
+                                                  settings.PHOTONS_PER_FLASH)
+
+        # calculate the scaling factor
+        scale = settings.TF_HITLIST_LEN/len(data[1])
+        logger.message("Scaling factor is {0:.3f}".format(scale))
+
+        # initialize tf data variables
+        session.run(init_data, feed_dict={tf_data_hits_placeholder:
+                                          data[0]*scale,
+                                          tf_simulated_photons_placeholder:
+                                          data[1][:settings.TF_HITLIST_LEN]})
 
         for optimizer_step in range(settings.OPTIMIZER_STEPS_PER_SIMULATION):
-            # initialize arrays to log real and predicted hits
-            step_hits_true = np.zeros(settings.N_DOMS, dtype=np.int32)
-            step_hits_pred = np.zeros(settings.N_DOMS, dtype=np.float)
-
             step = global_step*settings.OPTIMIZER_STEPS_PER_SIMULATION \
                 + optimizer_step + 1
             # compute and apply gradients and get the loss with this data
             logger.message("Running TensorFlow session to get gradients...",
                            step)
-            for batch in tqdm(batches, leave=False):
-                batch_hits_pred = \
-                    session.run([evaluate_batch, update_loss, hits_pred],
-                                feed_dict={tf_data_hits:
-                                           batch['data_hits'],
-                                           tf_simulated_photons:
-                                           batch['simulated_photons']})[2]
 
-                # add the hits up for logging
-                step_hits_true += batch['data_hits']
-                step_hits_pred += batch_hits_pred
-
-            # apply accumulated gradients
-            session.run(apply_gradients)
-
-            # get loss
-            step_loss = session.run(average_loss)
-
-            # reset variables for next step
-            session.run([reset_gradients, reset_loss])
+            step_loss, step_hits_pred = \
+                session.run([optimize, loss, hits_pred])[1:]
 
             # get updated parameters
             result = session.run(model.l_abs)
 
             # log everything
             logger.log(step, [step_loss] + result.tolist())
-            logger.save_hitlists(step, step_hits_true, step_hits_pred)
+            # logger.save_hitlists(step, data[0], step_hits_pred)
 
             # and save it once every write interval
             if step % settings.WRITE_INTERVAL == 0:

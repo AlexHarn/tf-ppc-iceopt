@@ -37,11 +37,16 @@ class Model:
         traveled_distances = simulated_photons[:, 1:]
         dom_ids = simulated_photons[:, 0]
 
+        # clip lengths to prevent negative training variables to destroy
+        # everything
+        # l_abs = tf.where(self.l_abs > 1, self.l_abs, tf.exp(self.l_abs - 1))
+        l_abs = tf.clip_by_value(self.l_abs, 0.001, 2000)
+
         # calculate hit probability p for each photon, which is the 1 - p_abs
         # where p_abs is the probability for the photon to be absorbed at a
         # distance smaller than the traveled distance before it hit the DOM
         p = tf.exp(-tf.reduce_sum(
-            1./tf.expand_dims(self.l_abs, 0)*traveled_distances,
+            1./tf.expand_dims(l_abs, 0)*traveled_distances,
             axis=1))
 
         hitlist = []
