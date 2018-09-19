@@ -138,6 +138,7 @@ class DataHandler:
            because of memory limitations for the gradient computation (e.g.
            when the scaling factor is < 1) to still use more of the data when
            iterating over the entire dataset multiple times.
+           CAUTION: Very slow!
 
         Returns
         -------

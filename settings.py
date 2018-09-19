@@ -37,7 +37,7 @@ PATH_DATA = '/net/big-tank/POOL/users/aharnisch/iceopt_photons/'
 RUN_SIMULATIONS = False
 
 # --------------------------------- Training ----------------------------------
-INITIAL_ABS = [100 for i in range(N_LAYERS)]
+INITIAL_ABS = [120 for i in range(N_LAYERS)]
 MAX_STEPS = 100000000
 N_PHOTONS = int(1.5e7)
 PHOTONS_PER_FLASH = N_PHOTONS/60
@@ -57,7 +57,7 @@ LEARNING_DECR = 0.95
 LEARNING_STEPS = 10
 
 # supported optimizers: Adam, GradientDescent
-OPTIMIZER = 'GradientDescent'
+OPTIMIZER = 'Adam'
 ADAM_SETTINGS = dict(beta1=0.9, beta2=0.999, epsilon=1e-08)
 
 # --------------------------------- Logging -----------------------------------

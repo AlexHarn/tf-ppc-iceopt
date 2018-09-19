@@ -154,7 +154,6 @@ if __name__ == '__main__':
 
             # log everything
             logger.log(step, [step_loss] + result.tolist())
-            # logger.save_hitlists(step, data[0], step_hits_pred)
 
             # and save it once every write interval
             if step % settings.WRITE_INTERVAL == 0:
