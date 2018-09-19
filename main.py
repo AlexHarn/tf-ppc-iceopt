@@ -39,6 +39,9 @@ init_data = [tf_data_hits.assign(tf_data_hits_placeholder),
 # initialize the model
 model = Model(settings.INITIAL_ABS)
 
+# define operation to reset trained parameters
+reset_paras = model.l_abs.assign(settings.INITIAL_ABS)
+
 # define hitlists
 hits_true = tf_data_hits
 hits_pred = model.tf_expected_hits(tf_simulated_photons)
@@ -100,27 +103,41 @@ if __name__ == '__main__':
     ppc = PPCWrapper(settings.PATH_NO_ABS_PPC, settings.PATH_REAL_PPC)
 
     # initialize the data handler
-    data_handler = DataHandler(ppc)
+    data_handler = DataHandler(ppc, settings.PATH_DATA)
+
+    if not settings.RUN_SIMULATIONS:
+        # load dataset
+        data_hits = data_handler.init_string_dataset(settings.FLASHER_STRING)
+        logger.message("Loaded string dataset with {} batches."
+                       .format(data_handler.n_batches))
 
     # --------------------------------- Run -----------------------------------
     logger.message("Starting...")
-
     for global_step in range(settings.MAX_STEPS):
-        logger.message("Running PPC to flash DOMs...",
-                       global_step*settings.OPTIMIZER_STEPS_PER_SIMULATION)
-        # Flash all DOMs on string 36
-        data = data_handler.generate_string_batch(36,
-                                                  settings.PHOTONS_PER_FLASH)
+        if settings.RUN_SIMULATIONS:
+            # Flash all DOMs on the choosen flasher string
+            logger.message("Running PPC to flash DOMs...",
+                           global_step*settings.OPTIMIZER_STEPS_PER_SIMULATION)
+            data_hits, simulated_photons = \
+                data_handler.generate_string_batch(settings.FLASHER_STRING,
+                                                   settings.PHOTONS_PER_FLASH)
+
+        else:
+            # get next batch
+            logger.message("Loading next batch...",
+                           global_step*settings.OPTIMIZER_STEPS_PER_SIMULATION)
+            simulated_photons = data_handler.load_next_batch()
 
         # calculate the scaling factor
-        scale = settings.TF_HITLIST_LEN/len(data[1])
-        logger.message("Scaling factor is {0:.3f}".format(scale))
+        scale = settings.TF_HITLIST_LEN/len(simulated_photons)
+        logger.message("Scaling factor is {0:.3f}".format(scale),
+                       global_step*settings.OPTIMIZER_STEPS_PER_SIMULATION)
 
         # initialize tf data variables
-        session.run(init_data, feed_dict={tf_data_hits_placeholder:
-                                          data[0]*scale,
-                                          tf_simulated_photons_placeholder:
-                                          data[1][:settings.TF_HITLIST_LEN]})
+        session.run(init_data,
+                    feed_dict={tf_data_hits_placeholder: data_hits*scale,
+                               tf_simulated_photons_placeholder:
+                               simulated_photons[:settings.TF_HITLIST_LEN]})
 
         for optimizer_step in range(settings.OPTIMIZER_STEPS_PER_SIMULATION):
             step = global_step*settings.OPTIMIZER_STEPS_PER_SIMULATION \

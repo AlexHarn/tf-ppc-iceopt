@@ -65,7 +65,7 @@ class PPCWrapper:
         assert round(dom) == dom and dom >= 1 and dom <= 60
 
         p = subprocess.Popen([self._real_ppc, str(string), str(dom),
-                              str(n_photons), "1"],
+                              str(n_photons)],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                              cwd=os.path.dirname(self._real_ppc))
         out, err = p.communicate()
@@ -105,7 +105,7 @@ class PPCWrapper:
         assert round(dom) == dom and dom >= 1 and dom <= 60
 
         p = subprocess.Popen([self._ppc, str(string), str(dom),
-                              str(n_photons), "1"],
+                              str(n_photons)],
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
                              cwd=os.path.dirname(self._ppc))
