@@ -11,11 +11,11 @@ class Model:
     Parameters
     ----------
     initial_abs : Array of floats
-        The initial absorption lengths for all layers
+        The initial absorption coeffiecients for all layers
     """
     def __init__(self, initial_abs):
-        self.l_abs = tf.Variable(initial_abs,
-                                 dtype=settings.TF_FLOAT_PRECISION)
+        self.abs_coeff = tf.Variable(initial_abs,
+                                     dtype=settings.TF_FLOAT_PRECISION)
 
     def tf_expected_hits(self, simulated_photons):
         """
@@ -37,15 +37,11 @@ class Model:
         traveled_distances = simulated_photons[:, 1:]
         dom_ids = simulated_photons[:, 0]
 
-        # clip lengths to prevent negative training variables to destroy
-        # everything
-        self.l_abs = tf.clip_by_value(self.l_abs, 0.5, 2000)
-
         # calculate hit probability p for each photon, which is the 1 - p_abs
         # where p_abs is the probability for the photon to be absorbed at a
         # distance smaller than the traveled distance before it hit the DOM
         p = tf.exp(-tf.reduce_sum(
-            1./tf.expand_dims(self.l_abs, 0)*traveled_distances,
+            tf.expand_dims(self.abs_coeff, 0)*traveled_distances,
             axis=1))
 
         hitlist = []

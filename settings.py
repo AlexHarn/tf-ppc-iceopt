@@ -37,14 +37,14 @@ PATH_DATA = '/net/big-tank/POOL/users/aharnisch/iceopt_photons/'
 RUN_SIMULATIONS = False
 
 # --------------------------------- Training ----------------------------------
-INITIAL_ABS = [120 for i in range(N_LAYERS)]
+INITIAL_ABS = [0.008 for i in range(N_LAYERS)]
 MAX_STEPS = 100000000
 N_PHOTONS = int(1.5e7)
 PHOTONS_PER_FLASH = N_PHOTONS/60
 
 # -------------------------------- Optimizer ----------------------------------
 # The initial learning rate
-INITIAL_LEARNING_RATE = 1
+INITIAL_LEARNING_RATE = 0.0001
 # The number of optimizer steps to perform per simulation
 OPTIMIZER_STEPS_PER_SIMULATION = 1
 # True or False to activate/deactivate learning rate decay

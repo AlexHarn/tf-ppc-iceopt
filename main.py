@@ -40,7 +40,7 @@ init_data = [tf_data_hits.assign(tf_data_hits_placeholder),
 model = Model(settings.INITIAL_ABS)
 
 # define operation to reset trained parameters
-reset_paras = model.l_abs.assign(settings.INITIAL_ABS)
+reset_paras = model.abs_coeff.assign(settings.INITIAL_ABS)
 
 # define hitlists
 hits_true = tf_data_hits
@@ -83,6 +83,11 @@ else:
 # create operation to optimize
 optimize = optimizer.minimize(loss)
 
+# create operation to reset negative values
+clipped = tf.where(model.abs_coeff < 1e-3, tf.ones_like(model.abs_coeff)*1e-3,
+                   model.abs_coeff)
+reset_negative = model.abs_coeff.assign(clipped)
+
 if __name__ == '__main__':
     if settings.TF_CPU_ONLY:
         config = tf.ConfigProto(device_count={'GPU': 0})
@@ -96,8 +101,8 @@ if __name__ == '__main__':
 
     # initialize the logger
     logger = Logger(logdir='./log/', overwrite=True)
-    logger.register_variables(['loss'] + ['l_abs_pred_{}'.format(i) for i in
-                                          range(settings.N_LAYERS)],
+    logger.register_variables(['loss'] + ['abs_coeff_pred_{}'.format(i) for i
+                                          in range(settings.N_LAYERS)],
                               print_variables=['loss'])
     # initialize the PPC wrapper
     ppc = PPCWrapper(settings.PATH_NO_ABS_PPC, settings.PATH_REAL_PPC)
@@ -149,8 +154,8 @@ if __name__ == '__main__':
             step_loss, step_hits_pred = \
                 session.run([optimize, loss, hits_pred])[1:]
 
-            # get updated parameters
-            result = session.run(model.l_abs)
+            # get updated parameters and reset negative coefficients
+            result = session.run([model.abs_coeff, reset_negative])[0]
 
             # log everything
             logger.log(step, [step_loss] + result.tolist())
