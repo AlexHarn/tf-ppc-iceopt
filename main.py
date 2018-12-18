@@ -46,11 +46,17 @@ reset_paras = model.abs_coeff.assign(settings.INITIAL_ABS)
 hits_true = tf_data_hits
 hits_pred = model.tf_expected_hits(tf_simulated_photons)
 
-# Dimas likelihood, take the logarithm for stability
-mu = (hits_pred + hits_true)/2
+# rescale the total number of hits to be equal for simulation and data to
+# correct for the flasher LED output uncertainty
+hits_true_rescaled = \
+    hits_true*tf.reduce_sum(tf.stop_gradient(hits_pred)) \
+    / tf.reduce_sum(hits_true)
+
+# Dimas likelihood (not really), take the logarithm for stability
+mu = (hits_pred + hits_true_rescaled)/2
 logLR_doms = hits_pred*(
     tf.log(mu) - tf.log(hits_pred)) + \
-    hits_true*(tf.log(mu) - tf.log(hits_true))
+    hits_true_rescaled*(tf.log(mu) - tf.log(hits_true_rescaled))
 
 loss = -tf.reduce_sum(tf.where(tf.is_nan(logLR_doms),
                                tf.zeros_like(logLR_doms), logLR_doms))
@@ -133,6 +139,11 @@ if __name__ == '__main__':
                            global_step*settings.OPTIMIZER_STEPS_PER_SIMULATION)
             simulated_photons = data_handler.load_next_batch()
 
+        # add Gaussian bias to data hits for testing the effect of flasher
+        # output uncertainty
+        biased_data_hits = 2*data_hits*abs(np.random.normal(loc=1.,
+                                                            scale=0.25))
+
         # calculate the scaling factor
         scale = settings.TF_HITLIST_LEN/len(simulated_photons)
         logger.message("Scaling factor is {0:.3f}".format(scale),
@@ -140,7 +151,7 @@ if __name__ == '__main__':
 
         # initialize tf data variables
         session.run(init_data,
-                    feed_dict={tf_data_hits_placeholder: data_hits*scale,
+                    feed_dict={tf_data_hits_placeholder: biased_data_hits,
                                tf_simulated_photons_placeholder:
                                simulated_photons[:settings.TF_HITLIST_LEN]})
 
