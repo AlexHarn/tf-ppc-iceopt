@@ -19,9 +19,11 @@ if settings.RANDOM_SEED:
 tf_data_hits_placeholder = tf.placeholder(dtype=settings.TF_FLOAT_PRECISION,
                                           shape=(settings.N_DOMS))
 
+# placeholder to feed the photon paths. Shape(N_PHOTONS, N_LAYERS + 2), +2
+# because of the DOM id and wavelength in nm
 tf_simulated_photons_placeholder = \
         tf.placeholder(dtype=settings.TF_FLOAT_PRECISION,
-                       shape=(settings.TF_HITLIST_LEN, settings.N_LAYERS + 1))
+                       shape=(settings.TF_HITLIST_LEN, settings.N_LAYERS + 2))
 
 # define data variables
 tf_data_hits = tf.get_variable("data_hits", dtype=settings.TF_FLOAT_PRECISION,
@@ -29,7 +31,7 @@ tf_data_hits = tf.get_variable("data_hits", dtype=settings.TF_FLOAT_PRECISION,
 tf_simulated_photons = tf.get_variable("simulated_photons",
                                        dtype=settings.TF_FLOAT_PRECISION,
                                        shape=(settings.TF_HITLIST_LEN,
-                                              settings.N_LAYERS + 1),
+                                              settings.N_LAYERS + 2),
                                        trainable=False)
 
 # define operations to initialize data variables
@@ -37,7 +39,7 @@ init_data = [tf_data_hits.assign(tf_data_hits_placeholder),
              tf_simulated_photons.assign(tf_simulated_photons_placeholder)]
 
 # initialize the model
-model = Model(settings.INITIAL_ABS)
+model = Model(settings.INITIAL_ABS, settings.ICE_MODEL_PATH)
 
 # define operation to reset trained parameters
 reset_paras = model.abs_coeff.assign(settings.INITIAL_ABS)

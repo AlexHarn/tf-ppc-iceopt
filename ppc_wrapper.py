@@ -35,9 +35,6 @@ class PPCWrapper:
         self._real_ppc = path_real_ppc
         self._n_layers = n_layers
 
-        # set wavelength for all photons to 400 nm for now
-        os.environ["WFLA"] = "400"
-
     def simulate_flash(self, string, dom, n_photons):
         """
         Simulates a single flash of DOM 'dom' on string 'string' with
@@ -112,8 +109,8 @@ class PPCWrapper:
         out, err = p.communicate()
         df = pd.read_csv(pd.compat.StringIO(out.decode()),
                          header=None).fillna(0.)
-        # drop time and wavelength info
-        df = df.drop(columns=[2, 3])
+        # drop time info
+        df = df.drop(columns=[2])
 
         # convert string, DOM format to single DOM id
         a = df.values

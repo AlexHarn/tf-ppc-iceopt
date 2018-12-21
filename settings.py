@@ -6,6 +6,9 @@ TF_FLOAT_PRECISION = tf.float32
 TF_CPU_ONLY = False
 TF_HITLIST_LEN = 700000
 
+# ----------------------------- Ice Mocel Config ------------------------------
+ICE_MODEL_PATH = '/home/aharnisch/modded-PPC/real/ice/'
+
 # ----------------------------- Simulation Data -------------------------------
 # The following sets the path to the modified PPC executable, which simulates
 # flasher runs without absorption and logs the traveled distance for each
@@ -39,7 +42,7 @@ RUN_SIMULATIONS = False
 # --------------------------------- Training ----------------------------------
 INITIAL_ABS = [0.008 for i in range(N_LAYERS)]
 MAX_STEPS = 100000000
-N_PHOTONS = int(1.5e7)
+N_PHOTONS = int(1.05e7)
 PHOTONS_PER_FLASH = N_PHOTONS/60
 
 # -------------------------------- Optimizer ----------------------------------

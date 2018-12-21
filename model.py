@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 from tqdm import trange
 
 import settings
@@ -13,9 +14,22 @@ class Model:
     initial_abs : Array of floats
         The initial absorption coeffiecients for all layers
     """
-    def __init__(self, initial_abs):
+    def __init__(self, initial_abs, ice_model_dir):
         self.abs_coeff = tf.Variable(initial_abs,
                                      dtype=settings.TF_FLOAT_PRECISION)
+
+        # load the delta tau table
+        depth, scatc, absc, delta_t = np.loadtxt(ice_model_dir+'icemodel.dat',
+                                                 unpack=True)
+        self._delta_t = delta_t[::-1]
+
+        # load 6 parameter ice model parameters
+        paras = np.loadtxt(ice_model_dir+'icemodel.par', unpack=True)[0]
+        self._ice_parameters = {'alpha': paras[0],
+                                'kappa': paras[1],
+                                'A': paras[2],
+                                'B': paras[3]
+                                }
 
     def tf_expected_hits(self, simulated_photons):
         """
@@ -34,15 +48,24 @@ class Model:
         The expected hits for each DOM. TF Tensor of shape (N_DOMS,).
         """
         # dirty, maybe seperate input
-        traveled_distances = simulated_photons[:, 1:]
+        traveled_distances = simulated_photons[:, 2:]
         dom_ids = simulated_photons[:, 0]
+        wavelengths = tf.tile(tf.expand_dims(
+            simulated_photons[:, 1], 1), [1, settings.N_LAYERS])
+
+        # calculate the the total absorption coefficient (as defined in section
+        # 4 of the SPICE paper)
+        a_dust = tf.expand_dims(self.abs_coeff, 0) \
+            * (wavelengths/400.)**(-self._ice_parameters['kappa'])
+        a_intrinsic = self._ice_parameters['A']*tf.exp(
+            -self._ice_parameters['B']/wavelengths) \
+            * (1 + .01*self._delta_t)
+        a_total = a_dust + a_intrinsic
 
         # calculate hit probability p for each photon, which is the 1 - p_abs
         # where p_abs is the probability for the photon to be absorbed at a
         # distance smaller than the traveled distance before it hit the DOM
-        p = tf.exp(-tf.reduce_sum(
-            tf.expand_dims(self.abs_coeff, 0)*traveled_distances,
-            axis=1))
+        p = tf.exp(-tf.reduce_sum(a_total*traveled_distances, axis=1))
 
         hitlist = []
         print("Building hitlist subgraph:")
