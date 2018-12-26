@@ -48,16 +48,20 @@ reset_paras = model.abs_coeff.assign(settings.INITIAL_ABS)
 hits_true = tf_data_hits
 hits_pred = model.tf_expected_hits(tf_simulated_photons)
 
+hits_pred = tf.where(hits_true > 0, hits_pred, tf.zeros_like(hits_pred))
+hits_true = tf.where(hits_pred > 0, hits_true, tf.zeros_like(hits_true))
+
 # rescale the total number of hits to be equal for simulation and data to
 # correct for the flasher LED output uncertainty
-hits_true_rescaled = \
-    hits_true*tf.reduce_sum(tf.stop_gradient(hits_pred)) \
-    / tf.reduce_sum(hits_true)
+hits_true_rescaled = hits_true*settings.RESCALED_HITS/tf.reduce_sum(hits_true)
+
+hits_pred_rescaled = hits_pred*settings.RESCALED_HITS \
+    / tf.reduce_sum(tf.stop_gradient(hits_pred))
 
 # Dimas likelihood (not really), take the logarithm for stability
-mu = (hits_pred + hits_true_rescaled)/2
-logLR_doms = hits_pred*(
-    tf.log(mu) - tf.log(hits_pred)) + \
+mu = (hits_pred_rescaled + hits_true_rescaled)/2
+logLR_doms = hits_pred_rescaled*(
+    tf.log(mu) - tf.log(hits_pred_rescaled)) + \
     hits_true_rescaled*(tf.log(mu) - tf.log(hits_true_rescaled))
 
 loss = -tf.reduce_sum(tf.where(tf.is_nan(logLR_doms),
@@ -116,35 +120,21 @@ if __name__ == '__main__':
     ppc = PPCWrapper(settings.PATH_NO_ABS_PPC, settings.PATH_REAL_PPC)
 
     # initialize the data handler
-    data_handler = DataHandler(ppc, settings.PATH_DATA)
+    data_handler = DataHandler(ppc, settings.DATA_PATH, settings.PHOTON_PATH)
 
-    if not settings.RUN_SIMULATIONS:
-        # load dataset
-        data_hits = data_handler.init_string_dataset(settings.FLASHER_STRING)
-        logger.message("Loaded string dataset with {} batches."
-                       .format(data_handler.n_batches))
+    # get a string iterator
+    string_iter = data_handler.get_string_iterator(settings.FLASHER_STRING)
 
     # --------------------------------- Run -----------------------------------
     logger.message("Starting...")
+    string_iter.start()
     for global_step in range(settings.MAX_STEPS):
-        if settings.RUN_SIMULATIONS:
-            # Flash all DOMs on the choosen flasher string
-            logger.message("Running PPC to flash DOMs...",
-                           global_step*settings.OPTIMIZER_STEPS_PER_SIMULATION)
-            data_hits, simulated_photons = \
-                data_handler.generate_string_batch(settings.FLASHER_STRING,
-                                                   settings.PHOTONS_PER_FLASH)
-
-        else:
-            # get next batch
-            logger.message("Loading next batch...",
-                           global_step*settings.OPTIMIZER_STEPS_PER_SIMULATION)
-            simulated_photons = data_handler.load_next_batch()
-
-        # add Gaussian bias to data hits for testing the effect of flasher
-        # output uncertainty
-        biased_data_hits = 2*data_hits*abs(np.random.normal(loc=1.,
-                                                            scale=0.25))
+        # get next batch
+        logger.message("Loading next batch...",
+                       global_step*settings.OPTIMIZER_STEPS_PER_SIMULATION)
+        dom, data_hits, simulated_photons = string_iter.next()
+        logger.message("Done. DOM is {}".format(dom),
+                       global_step*settings.OPTIMIZER_STEPS_PER_SIMULATION)
 
         # calculate the scaling factor
         scale = settings.TF_HITLIST_LEN/len(simulated_photons)
@@ -153,7 +143,7 @@ if __name__ == '__main__':
 
         # initialize tf data variables
         session.run(init_data,
-                    feed_dict={tf_data_hits_placeholder: biased_data_hits,
+                    feed_dict={tf_data_hits_placeholder: data_hits,
                                tf_simulated_photons_placeholder:
                                simulated_photons[:settings.TF_HITLIST_LEN]})
 

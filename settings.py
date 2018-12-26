@@ -9,6 +9,10 @@ TF_HITLIST_LEN = 700000
 # ----------------------------- Ice Mocel Config ------------------------------
 ICE_MODEL_PATH = '/home/aharnisch/modded-PPC/real/ice/'
 
+# ------------------------------- Flasher Data --------------------------------
+DATA_PATH = '/net/big-tank/POOL/users/aharnisch/flasher_data_charge_only/'
+# DATA_PATH = '/net/big-tank/POOL/users/aharnisch/fake_flasher_data/'
+
 # ----------------------------- Simulation Data -------------------------------
 # The following sets the path to the modified PPC executable, which simulates
 # flasher runs without absorption and logs the traveled distance for each
@@ -32,8 +36,8 @@ N_DOMS = 5160
 # errors. String 36 is in the middle of deep core.
 FLASHER_STRING = 36
 
-# The data directory
-PATH_DATA = '/net/big-tank/POOL/users/aharnisch/iceopt_photons/'
+# The simulated photon data directory
+PHOTON_PATH = '/net/big-tank/POOL/users/aharnisch/iceopt_photons/'
 
 # Choose whether to run new simulations or load from an existing dataset in
 # PATH_DATA
@@ -44,6 +48,9 @@ INITIAL_ABS = [0.008 for i in range(N_LAYERS)]
 MAX_STEPS = 100000000
 N_PHOTONS = int(1.05e7)
 PHOTONS_PER_FLASH = N_PHOTONS/60
+# The number of hits to rescale to. We rescale to this fixed amount of hits
+# every time to make the loss more comparable for different emitter DOMs
+RESCALED_HITS = 100000
 
 # -------------------------------- Optimizer ----------------------------------
 # The initial learning rate
