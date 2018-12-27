@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 RANDOM_SEED = False  # seed or False
 # -------------------------------- TensorFlow ---------------------------------
@@ -10,8 +11,8 @@ TF_HITLIST_LEN = 700000
 ICE_MODEL_PATH = '/home/aharnisch/modded-PPC/real/ice/'
 
 # ------------------------------- Flasher Data --------------------------------
-DATA_PATH = '/net/big-tank/POOL/users/aharnisch/flasher_data_charge_only/'
-# DATA_PATH = '/net/big-tank/POOL/users/aharnisch/fake_flasher_data/'
+# DATA_PATH = '/net/big-tank/POOL/users/aharnisch/flasher_data_charge_only/'
+DATA_PATH = '/net/big-tank/POOL/users/aharnisch/fake_flasher_data/'
 
 # ----------------------------- Simulation Data -------------------------------
 # The following sets the path to the modified PPC executable, which simulates
@@ -39,24 +40,18 @@ FLASHER_STRING = 36
 # The simulated photon data directory
 PHOTON_PATH = '/net/big-tank/POOL/users/aharnisch/iceopt_photons/'
 
-# Choose whether to run new simulations or load from an existing dataset in
-# PATH_DATA
-RUN_SIMULATIONS = False
-
 # --------------------------------- Training ----------------------------------
+# depth, scatc, absc, delta_t = np.loadtxt('icemodel.dat', unpack=True)
 INITIAL_ABS = [0.008 for i in range(N_LAYERS)]
+# INITIAL_ABS = absc[::-1]
 MAX_STEPS = 100000000
-N_PHOTONS = int(1.05e7)
-PHOTONS_PER_FLASH = N_PHOTONS/60
 # The number of hits to rescale to. We rescale to this fixed amount of hits
 # every time to make the loss more comparable for different emitter DOMs
 RESCALED_HITS = 100000
 
 # -------------------------------- Optimizer ----------------------------------
 # The initial learning rate
-INITIAL_LEARNING_RATE = 0.0001
-# The number of optimizer steps to perform per simulation
-OPTIMIZER_STEPS_PER_SIMULATION = 1
+INITIAL_LEARNING_RATE = 0.001
 # True or False to activate/deactivate learning rate decay
 LEARNING_DECAY = False
 # Decay modes: Linear or Exponential
@@ -71,4 +66,4 @@ OPTIMIZER = 'Adam'
 ADAM_SETTINGS = dict(beta1=0.9, beta2=0.999, epsilon=1e-08)
 
 # --------------------------------- Logging -----------------------------------
-WRITE_INTERVAL = 5  # how many steps between each write
+WRITE_INTERVAL = 1  # how many steps between each write

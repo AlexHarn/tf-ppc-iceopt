@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import multiprocessing as mp
 import os
+from time import sleep
 
 
 class DataHandler:
@@ -67,46 +68,60 @@ class DataHandler:
         df = pd.read_csv(fname, header=None).fillna(0.)
         return df.values
 
-    def get_string_iterator(self, string, n_threads=4, q_size=4):
+    def get_string_iterator(self, n_threads=4, q_size=4):
         """
         TODO: Docstrings
         """
         class StringIter(object):
-            def __init__(self, string, data_handler, q_size):
-                self._string = string
+            def __init__(self, data_handler):
                 self._data_handler = data_handler
+
+            def __call__(self, string):
+                self._string = string
+                self._active_threads = mp.Value('i', n_threads)
                 self._dom = mp.Value('i', 1)
                 self._q = mp.Queue(maxsize=q_size)
+                return self
 
-            def start(self):
-                def _producer(next_dom, lock):
+            def __iter__(self):
+                def _producer(next_dom, active_threads, lock):
                     while True:
                         with lock:
                             dom = next_dom.value
-                            if dom == 60:
-                                next_dom.value = 1
-                            else:
+                            if dom < 61:
                                 next_dom.value += 1
+                            else:
+                                active_threads.value -= 1
+                        if dom == 61:
+                            # wait for all threads to finish before issuing the
+                            # termination signal
+                            while active_threads.value > 0:
+                                sleep(5)
+                            self._q.put(None)
+                            return
                         data_hits = \
-                            self._data_handler.load_flasher_data(string, dom)
+                            self._data_handler.load_flasher_data(self._string,
+                                                                 dom)
                         if data_hits is None:
                             continue
                         simulated_photons = \
-                            self._data_handler.load_photons(string, dom)
+                            self._data_handler.load_photons(self._string, dom)
                         self._q.put([dom, data_hits, simulated_photons],
                                     block=True)
 
                 lock = mp.Lock()
                 for i in range(n_threads):
-                    thread = mp.Process(target=_producer, args=[self._dom,
-                                                                lock])
+                    thread = mp.Process(target=_producer,
+                                        args=[self._dom, self._active_threads,
+                                              lock])
                     thread.daemon = True
                     thread.start()
 
-            def next(self):
-                data = self._q.get()
-                return data[0], data[1], data[2]
-        return StringIter(string, self, q_size)
+                for data in iter(self._q.get, None):
+                    yield data[0], data[1], data[2]
+                self._q.close()
+
+        return StringIter(self)
 
 
 class DataInitError(Exception):
