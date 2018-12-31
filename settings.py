@@ -28,10 +28,10 @@ TF_HITLIST_LEN = 700000
 ICE_MODEL_PATH = '/home/aharnisch/modded-PPC/real/ice/'
 
 # ------------------------------- Flasher Data --------------------------------
-# DATA_PATH = '/net/big-tank/POOL/users/aharnisch/flasher_data_charge_only/'
+DATA_PATH = '/net/big-tank/POOL/users/aharnisch/flasher_data_charge_only/'
 # DATA_PATH = '/net/big-tank/POOL/users/aharnisch/fake_flasher_data/'
 # DATA_PATH = '/net/big-tank/POOL/users/aharnisch/processed_flasher_data/'
-DATA_PATH = '/net/big-tank/POOL/users/aharnisch/fake_anisotropic_flasher_data/'
+# DATA_PATH = '/net/big-tank/POOL/users/aharnisch/fake_anisotropic_flasher_data/'
 
 # ----------------------------- Simulation Data -------------------------------
 # The simulated photon data directory
@@ -54,8 +54,12 @@ FLASHER_STRING = 36
 GRADIENT_AVERAGING = False
 
 # depth, scatc, absc, delta_t = np.loadtxt('icemodel.dat', unpack=True)
-INITIAL_ABS = [0.015 for i in range(N_LAYERS)]
+INITIAL_ABS = [0.01 for i in range(N_LAYERS)]
 # INITIAL_ABS = absc[::-1]
+
+# The smallest allowed absorption coeffizient, values below are clipped on
+# every step
+MIN_ABS = 0.0018
 
 # The maximum number of training steps to perform.
 MAX_STEPS = 100000000

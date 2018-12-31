@@ -4,7 +4,6 @@ import numpy as np
 
 from logger import Logger
 from model import Model
-from ppc_wrapper import PPCWrapper
 from data_handler import DataHandler
 import settings
 
@@ -131,7 +130,8 @@ else:  # No gradient averaging
     optimize = optimizer.minimize(loss)
 
 # create operation to reset negative values
-clipped = tf.where(model.abs_coeff < 1e-3, tf.ones_like(model.abs_coeff)*1e-3,
+clipped = tf.where(model.abs_coeff < settings.MIN_ABS,
+                   tf.ones_like(model.abs_coeff)*settings.MIN_ABS,
                    model.abs_coeff)
 reset_negative = model.abs_coeff.assign(clipped)
 
