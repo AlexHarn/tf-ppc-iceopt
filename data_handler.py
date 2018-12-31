@@ -56,6 +56,13 @@ class DataHandler:
         Loads the photons, that were simulated without absorption, for the
         specified emitter dom from the photon_dir.
 
+        Parameters
+        ----------
+        string : Integer
+            The string to which the emitter DOM belongs (1 to 86).
+        DOM : Integer
+            The DOM on that specific string, which is the emitter OM (1 to 60).
+
         Returns
         -------
         None if there is no data in the directory for the specified dom.
@@ -70,7 +77,25 @@ class DataHandler:
 
     def get_string_iterator(self, n_threads=4, q_size=4):
         """
-        TODO: Docstrings
+        This method generates a python iterator object, to iteratoe through dom
+        batches. It loads the data and especially the simulated photons in
+        parallel, to reduce the bottleneck. It is still the bottleneck of the
+        entire program though.
+
+        Parameters
+        ----------
+        n_threads : Integer
+            The number of worker threads to launch for loading batches in the
+            background.
+        q_size : Integer
+            The maximum length of the batch queue, in which the worker threads
+            put the batches.
+
+        Returns
+        -------
+        Python iterator object which returns the DOM id, data hits and
+        simulated photons array when iterated on. The argument for the iterator
+        object is the id of the string to iterate over.
         """
         class StringIter(object):
             def __init__(self, data_handler):

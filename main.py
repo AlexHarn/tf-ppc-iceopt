@@ -19,8 +19,8 @@ if settings.RANDOM_SEED:
 tf_data_hits_placeholder = tf.placeholder(dtype=settings.TF_FLOAT_PRECISION,
                                           shape=(settings.N_DOMS))
 
-# placeholder to feed the photon paths. Shape(N_PHOTONS, N_LAYERS + 2), +2
-# because of the DOM id and wavelength in nm
+# placeholder to feed the photon paths. Shape(N_PHOTONS, N_LAYERS + 2),
+# +2 because of the DOM id and wavelength in nm
 tf_simulated_photons_placeholder = \
         tf.placeholder(dtype=settings.TF_FLOAT_PRECISION,
                        shape=(settings.TF_HITLIST_LEN, settings.N_LAYERS + 2))
@@ -52,9 +52,9 @@ hits_pred = tf.where(hits_true > 0, hits_pred, tf.zeros_like(hits_pred))
 hits_true = tf.where(hits_pred > 0, hits_true, tf.zeros_like(hits_true))
 
 # rescale the total number of hits to be equal for simulation and data to
-# correct for the flasher LED output uncertainty
+# correct for the flasher LED output uncertainty. We rescale to a fixed
+# constant to make the loss more comparable between different batches
 hits_true_rescaled = hits_true*settings.RESCALED_HITS/tf.reduce_sum(hits_true)
-
 hits_pred_rescaled = hits_pred*settings.RESCALED_HITS \
     / tf.reduce_sum(tf.stop_gradient(hits_pred))
 
@@ -63,7 +63,6 @@ mu = (hits_pred_rescaled + hits_true_rescaled)/2
 logLR_doms = hits_pred_rescaled*(
     tf.log(mu) - tf.log(hits_pred_rescaled)) + \
     hits_true_rescaled*(tf.log(mu) - tf.log(hits_true_rescaled))
-
 loss = -tf.reduce_sum(tf.where(tf.is_nan(logLR_doms),
                                tf.zeros_like(logLR_doms), logLR_doms))
 
@@ -92,41 +91,44 @@ elif settings.OPTIMIZER == 'GradientDescent':
 else:
     raise ValueError(settings.OPTIMIZER+" is not a supported optimizer!")
 
-# grab all trainable variables
-trainable_variables = tf.trainable_variables()
+if settings.GRADIENT_AVERAGING:
+    # grab all trainable variables
+    trainable_variables = tf.trainable_variables()
 
-# define variables to save the gradients in each batch
-accumulated_gradients = [tf.Variable(tf.zeros_like(tv.initialized_value()),
-                                     trainable=False) for tv in
-                         trainable_variables]
+    # define variables to save the gradients in each batch
+    accumulated_gradients = [tf.Variable(tf.zeros_like(tv.initialized_value()),
+                                         trainable=False) for tv in
+                             trainable_variables]
 
-# define operation to reset the accumulated gradients to zero
-reset_gradients = [gradient.assign(tf.zeros_like(gradient)) for gradient in
-                   accumulated_gradients]
+    # define operation to reset the accumulated gradients to zero
+    reset_gradients = [gradient.assign(tf.zeros_like(gradient)) for gradient in
+                       accumulated_gradients]
 
-# compute the gradients
-gradients = optimizer.compute_gradients(loss, trainable_variables)
+    # compute the gradients
+    gradients = optimizer.compute_gradients(loss, trainable_variables)
 
-# Note: Gradients is a list of tuples containing the gradient and the
-# corresponding variable so gradient[0] is the actual gradient. Also divide
-# the gradients by BATCHES_PER_STEP so the learning rate still refers to
-# steps not batches.
+    # Note: Gradients is a list of tuples containing the gradient and the
+    # corresponding variable so gradient[0] is the actual gradient. Also divide
+    # the gradients by BATCHES_PER_STEP so the learning rate still refers to
+    # steps not batches.
 
-# define operation to evaluate a batch and accumulate the gradients
-evaluate_batch = [
-    accumulated_gradient.assign_add(gradient[0])
-    for accumulated_gradient, gradient in zip(accumulated_gradients,
-                                              gradients)]
+    # define operation to evaluate a batch and accumulate the gradients
+    evaluate_batch = [
+        accumulated_gradient.assign_add(gradient[0])
+        for accumulated_gradient, gradient in zip(accumulated_gradients,
+                                                  gradients)]
 
-# define operation to apply the gradients
-apply_gradients = optimizer.apply_gradients([
-    (accumulated_gradient, gradient[1]) for accumulated_gradient, gradient
-    in zip(accumulated_gradients, gradients)])
+    # define operation to apply the gradients
+    apply_gradients = optimizer.apply_gradients([
+        (accumulated_gradient, gradient[1]) for accumulated_gradient, gradient
+        in zip(accumulated_gradients, gradients)])
 
-# define variable and operations to track the average batch loss
-tf_step_loss = tf.Variable(0., trainable=False)
-update_loss = tf_step_loss.assign_add(loss)
-reset_loss = tf_step_loss.assign(0.)
+    # define variable and operations to track the average batch loss
+    tf_step_loss = tf.Variable(0., trainable=False)
+    update_loss = tf_step_loss.assign_add(loss)
+    reset_loss = tf_step_loss.assign(0.)
+else:  # No gradient averaging
+    optimize = optimizer.minimize(loss)
 
 # create operation to reset negative values
 clipped = tf.where(model.abs_coeff < 1e-3, tf.ones_like(model.abs_coeff)*1e-3,
@@ -149,23 +151,22 @@ if __name__ == '__main__':
     logger.register_variables(['loss'] + ['abs_coeff_pred_{}'.format(i) for i
                                           in range(settings.N_LAYERS)],
                               print_variables=['loss'])
-    # initialize the PPC wrapper
-    ppc = PPCWrapper(settings.PATH_NO_ABS_PPC, settings.PATH_REAL_PPC)
 
     # initialize the data handler
-    data_handler = DataHandler(ppc, settings.DATA_PATH, settings.PHOTON_PATH)
+    data_handler = DataHandler(data_dir=settings.DATA_PATH,
+                               photon_dir=settings.PHOTON_PATH)
 
     # get a string iterator
     string_iter = data_handler.get_string_iterator()
 
     # --------------------------------- Run -----------------------------------
     logger.message("Starting...")
-    for step in range(1, settings.MAX_STEPS + 1):
+    step = 1
+    while step < settings.MAX_STEPS:
+        logger.message("Loading first batch...", step)
         for dom, data_hits, simulated_photons \
                 in string_iter(settings.FLASHER_STRING):
-            # get next batch
-            logger.message("Loading next batch...", step)
-            logger.message("Done. DOM is {}".format(dom), step)
+            logger.message("Loaded next batch. DOM is {}".format(dom), step)
 
             # calculate the scaling factor
             scale = settings.TF_HITLIST_LEN/len(simulated_photons)
@@ -178,36 +179,65 @@ if __name__ == '__main__':
                            tf_simulated_photons_placeholder:
                            simulated_photons[:settings.TF_HITLIST_LEN]})
 
-            # compute and apply gradients and get the loss with this data
-            logger.message("Running TensorFlow session to get gradients...",
-                           step)
+            if settings.GRADIENT_AVERAGING:
+                # compute gradients and update the loss with this data
+                logger.message(
+                    "Running TensorFlow session to get gradients...", step)
 
-            # calculate gradients for this dom
-            session.run([evaluate_batch, update_loss])
+                # calculate gradients for this dom
+                session.run([evaluate_batch, update_loss])
+            else:
+                # compute and apply gradients and get the loss with this data
+                logger.message(
+                    "Running TensorFlow session to get gradients...", step)
+                step_loss = session.run([optimize, loss])[1]
 
-        logger.message("Applying gradients...", step)
-        session.run(apply_gradients)
+                # get updated parameters and reset negative coefficients
+                result = session.run([model.abs_coeff, reset_negative])[0]
 
-        # get updated parameters and reset negative coefficients
-        result = session.run([model.abs_coeff, reset_negative])[0]
+                # log everything
+                logger.log(step, [step_loss] + result.tolist())
 
-        # get the loss
-        step_loss = session.run(tf_step_loss)
+            logger.message("Done with this batch.", step)
+            if not settings.GRADIENT_AVERAGING:
+                step += 1
+                # and save it once every write interval
+                if step % settings.WRITE_INTERVAL == 0:
+                    logger.write()
+                if settings.LEARNING_DECAY and \
+                   step % settings.LEARNING_STEPS == 0:
+                    learning_rate = session.run(update_learning_rate)
+                    logger.message("Learning rate decreased to {:2.4f}"
+                                   .format(learning_rate), step)
+                    if learning_rate <= 0:
+                        break
 
-        # log everything
-        logger.log(step, [step_loss] + result.tolist())
+        if settings.GRADIENT_AVERAGING:
+            logger.message("Applying gradients...", step)
+            session.run(apply_gradients)
 
-        # and save it once every write interval
-        if step % settings.WRITE_INTERVAL == 0:
-            logger.write()
+            # get updated parameters and reset negative coefficients
+            result = session.run([model.abs_coeff, reset_negative])[0]
 
-        # reset variables for next step
-        session.run([reset_gradients, reset_loss])
+            # get the loss
+            step_loss = session.run(tf_step_loss)
 
-        if settings.LEARNING_DECAY and step % settings.LEARNING_STEPS == 0:
-            learning_rate = session.run(update_learning_rate)
-            logger.message("Learning rate decreased to {:2.4f}"
-                           .format(learning_rate), step)
-            if learning_rate <= 0:
-                break
+            # log everything
+            logger.log(step, [step_loss] + result.tolist())
+
+            # and save it once every write interval
+            if step % settings.WRITE_INTERVAL == 0:
+                logger.write()
+
+            # reset variables for next step
+            session.run([reset_gradients, reset_loss])
+            step += 1
+
+            if settings.LEARNING_DECAY and step % settings.LEARNING_STEPS == 0:
+                learning_rate = session.run(update_learning_rate)
+                logger.message("Learning rate decreased to {:2.4f}"
+                               .format(learning_rate), step)
+                if learning_rate <= 0:
+                    break
+
     logger.message("Done.")
