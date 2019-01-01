@@ -44,7 +44,7 @@ class DataHandler:
         charge measured by the according DOM. The indexing is done in the usual
         way: 60*(int(string) - 1) + int(dom) - 1.
         """
-        fname = self._data_dir + '{}_{}'.format(string, dom)
+        fname = self._data_dir + '{}_{}.hits'.format(string, dom)
         if not os.path.isfile(fname):
             return None
 
