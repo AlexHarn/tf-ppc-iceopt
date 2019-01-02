@@ -73,7 +73,9 @@ class DataHandler:
             return None
 
         df = pd.read_csv(fname, header=None).fillna(0.)
-        return df.values
+
+        # drop time info
+        return np.delete(df.values, 1, 1)
 
     def get_string_iterator(self, n_threads=4, q_size=4):
         """
