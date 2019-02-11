@@ -28,20 +28,28 @@ TF_HITLIST_LEN = 700000
 ICE_MODEL_PATH = '/home/aharnisch/modded-PPC/real/ice/'
 
 # ------------------------------- Flasher Data --------------------------------
-DATA_PATH = '/net/big-tank/POOL/users/aharnisch/flasher_data_charge_only/'
-# DATA_PATH = '/net/big-tank/POOL/users/aharnisch/fake_flasher_data/'
-# DATA_PATH = '/net/big-tank/POOL/users/aharnisch/processed_flasher_data/'
-# DATA_PATH = '/net/big-tank/POOL/users/aharnisch/fake_anisotropic_flasher_data/'
+# DATA_PATH = \
+        # '/net/big-tank/POOL/users/aharnisch/fake_flasher_data/charge_only/spice_3.2.2/all_cuts/'
+# DATA_PATH = \
+        # '/net/big-tank/POOL/users/aharnisch/fake_flasher_data/charge_only/spice_3.2.2/qcuts_only/'
+# DATA_PATH = \
+        # '/net/big-tank/POOL/users/aharnisch/fake_flasher_data/charge_only/spice_3.2.2/old/fake_anisotropic_flasher_data/'
+# DATA_PATH = \
+        # '/net/big-tank/POOL/users/aharnisch/fake_flasher_data/charge_only/spice_3.2.2/int32_qcuts_only/'
+
+DATA_PATH = \
+        '/net/big-tank/POOL/users/aharnisch/flasher_data/charge_only/only_qcuts/'
 
 # ----------------------------- Simulation Data -------------------------------
 # The simulated photon data directory
-PHOTON_PATH = '/net/big-tank/POOL/users/aharnisch/iceopt_photons/'
+# PHOTON_PATH = '/net/big-tank/POOL/users/aharnisch/iceopt_photons/all_cuts/'
+PHOTON_PATH = '/net/big-tank/POOL/users/aharnisch/iceopt_photons/qcuts_only/'
 
 # --------------------------------- Training ----------------------------------
 # Flashing string, for now we only flash this one string. Should not make a
 # difference when comparing to simulation anyways since there are no model
 # errors. String 36 is in the middle of deep core.
-FLASHER_STRING = 36
+FLASHER_STRINGS = [36]
 
 # If this flag is set to true, the gradient is averaged over an entire string
 # before fed to the optimizer. This is not the same as evaluating string
@@ -51,7 +59,7 @@ FLASHER_STRING = 36
 # make the gradient more stable becaue it includes information on all layers.
 # It also smooths out the loss significantly which is helpful when debugging.
 # If it is set to False the gradient is applied on every dom batch each time.
-GRADIENT_AVERAGING = False
+GRADIENT_AVERAGING = True
 
 # depth, scatc, absc, delta_t = np.loadtxt('icemodel.dat', unpack=True)
 INITIAL_ABS = [0.01 for i in range(N_LAYERS)]
@@ -59,7 +67,7 @@ INITIAL_ABS = [0.01 for i in range(N_LAYERS)]
 
 # The smallest allowed absorption coeffizient, values below are clipped on
 # every step
-MIN_ABS = 0.0018
+MIN_ABS = 0.001
 
 # The maximum number of training steps to perform.
 MAX_STEPS = 100000000
@@ -73,7 +81,7 @@ RESCALED_HITS = 100000
 
 # -------------------------------- Optimizer ----------------------------------
 # The initial learning rate
-INITIAL_LEARNING_RATE = 0.0001
+INITIAL_LEARNING_RATE = 0.001
 # True or False to activate/deactivate learning rate decay
 LEARNING_DECAY = False
 # Decay modes: Linear or Exponential

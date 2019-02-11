@@ -163,81 +163,86 @@ if __name__ == '__main__':
     logger.message("Starting...")
     step = 1
     while step < settings.MAX_STEPS:
-        logger.message("Loading first batch...", step)
-        for dom, data_hits, simulated_photons \
-                in string_iter(settings.FLASHER_STRING):
-            logger.message("Loaded next batch. DOM is {}".format(dom), step)
+        for string in settings.FLASHER_STRINGS:
+            logger.message("Loading first batch for string {}..."
+                           .format(string), step)
+            for dom, data_hits, simulated_photons \
+                    in string_iter(string):
+                logger.message("Loaded next batch. DOM is {}".format(dom),
+                               step)
 
-            # calculate the scaling factor
-            scale = settings.TF_HITLIST_LEN/len(simulated_photons)
-            logger.message("Scaling factor is {0:.3f}".format(scale), step)
+                # calculate the scaling factor
+                scale = settings.TF_HITLIST_LEN/len(simulated_photons)
+                logger.message("Scaling factor is {0:.3f}".format(scale), step)
 
-            # initialize tf data variables
-            session.run(
-                init_data,
-                feed_dict={tf_data_hits_placeholder: data_hits,
-                           tf_simulated_photons_placeholder:
-                           simulated_photons[:settings.TF_HITLIST_LEN]})
+                # initialize tf data variables
+                session.run(
+                    init_data,
+                    feed_dict={tf_data_hits_placeholder: data_hits,
+                               tf_simulated_photons_placeholder:
+                               simulated_photons[:settings.TF_HITLIST_LEN]})
+
+                if settings.GRADIENT_AVERAGING:
+                    # compute gradients and update the loss with this data
+                    logger.message(
+                        "Running TensorFlow session to get gradients...", step)
+
+                    # calculate gradients for this dom
+                    session.run([evaluate_batch, update_loss])
+                else:
+                    # compute and apply gradients and get the loss with this
+                    # data
+                    logger.message(
+                        "Running TensorFlow session to get gradients...", step)
+                    step_loss = session.run([optimize, loss])[1]
+
+                    # get updated parameters and reset negative coefficients
+                    result = session.run([model.abs_coeff, reset_negative])[0]
+
+                    # log everything
+                    logger.log(step, [step_loss] + result.tolist())
+
+                logger.message("Done with this batch.", step)
+                if not settings.GRADIENT_AVERAGING:
+                    step += 1
+                    # and save it once every write interval
+                    if step % settings.WRITE_INTERVAL == 0:
+                        logger.write()
+                    if settings.LEARNING_DECAY and \
+                       step % settings.LEARNING_STEPS == 0:
+                        learning_rate = session.run(update_learning_rate)
+                        logger.message("Learning rate decreased to {:2.4f}"
+                                       .format(learning_rate), step)
+                        if learning_rate <= 0:
+                            break
 
             if settings.GRADIENT_AVERAGING:
-                # compute gradients and update the loss with this data
-                logger.message(
-                    "Running TensorFlow session to get gradients...", step)
-
-                # calculate gradients for this dom
-                session.run([evaluate_batch, update_loss])
-            else:
-                # compute and apply gradients and get the loss with this data
-                logger.message(
-                    "Running TensorFlow session to get gradients...", step)
-                step_loss = session.run([optimize, loss])[1]
+                logger.message("Applying gradients...", step)
+                session.run(apply_gradients)
 
                 # get updated parameters and reset negative coefficients
                 result = session.run([model.abs_coeff, reset_negative])[0]
 
+                # get the loss
+                step_loss = session.run(tf_step_loss)
+
                 # log everything
                 logger.log(step, [step_loss] + result.tolist())
 
-            logger.message("Done with this batch.", step)
-            if not settings.GRADIENT_AVERAGING:
-                step += 1
                 # and save it once every write interval
                 if step % settings.WRITE_INTERVAL == 0:
                     logger.write()
-                if settings.LEARNING_DECAY and \
-                   step % settings.LEARNING_STEPS == 0:
+
+                # reset variables for next step
+                session.run([reset_gradients, reset_loss])
+                step += 1
+
+                if settings.LEARNING_DECAY \
+                        and step % settings.LEARNING_STEPS == 0:
                     learning_rate = session.run(update_learning_rate)
                     logger.message("Learning rate decreased to {:2.4f}"
                                    .format(learning_rate), step)
                     if learning_rate <= 0:
                         break
-
-        if settings.GRADIENT_AVERAGING:
-            logger.message("Applying gradients...", step)
-            session.run(apply_gradients)
-
-            # get updated parameters and reset negative coefficients
-            result = session.run([model.abs_coeff, reset_negative])[0]
-
-            # get the loss
-            step_loss = session.run(tf_step_loss)
-
-            # log everything
-            logger.log(step, [step_loss] + result.tolist())
-
-            # and save it once every write interval
-            if step % settings.WRITE_INTERVAL == 0:
-                logger.write()
-
-            # reset variables for next step
-            session.run([reset_gradients, reset_loss])
-            step += 1
-
-            if settings.LEARNING_DECAY and step % settings.LEARNING_STEPS == 0:
-                learning_rate = session.run(update_learning_rate)
-                logger.message("Learning rate decreased to {:2.4f}"
-                               .format(learning_rate), step)
-                if learning_rate <= 0:
-                    break
 
     logger.message("Done.")
