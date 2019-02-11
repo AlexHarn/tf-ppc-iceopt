@@ -28,28 +28,19 @@ TF_HITLIST_LEN = 700000
 ICE_MODEL_PATH = '/home/aharnisch/modded-PPC/real/ice/'
 
 # ------------------------------- Flasher Data --------------------------------
-# DATA_PATH = \
-        # '/net/big-tank/POOL/users/aharnisch/fake_flasher_data/charge_only/spice_3.2.2/all_cuts/'
-# DATA_PATH = \
-        # '/net/big-tank/POOL/users/aharnisch/fake_flasher_data/charge_only/spice_3.2.2/qcuts_only/'
-# DATA_PATH = \
-        # '/net/big-tank/POOL/users/aharnisch/fake_flasher_data/charge_only/spice_3.2.2/old/fake_anisotropic_flasher_data/'
-# DATA_PATH = \
-        # '/net/big-tank/POOL/users/aharnisch/fake_flasher_data/charge_only/spice_3.2.2/int32_qcuts_only/'
-
-DATA_PATH = \
-        '/net/big-tank/POOL/users/aharnisch/flasher_data/charge_only/only_qcuts/'
+DATA_PATH = '/net/big-tank/POOL/users/aharnisch/fake_flasher_data/charge_only/'
 
 # ----------------------------- Simulation Data -------------------------------
 # The simulated photon data directory
-# PHOTON_PATH = '/net/big-tank/POOL/users/aharnisch/iceopt_photons/all_cuts/'
-PHOTON_PATH = '/net/big-tank/POOL/users/aharnisch/iceopt_photons/qcuts_only/'
+PHOTON_PATH = '/net/big-tank/POOL/users/aharnisch/iceopt_photons/'
 
 # --------------------------------- Training ----------------------------------
 # Flashing string, for now we only flash this one string. Should not make a
 # difference when comparing to simulation anyways since there are no model
-# errors. String 36 is in the middle of deep core.
-FLASHER_STRINGS = [36]
+# errors. String 36 is in the middle of deep core. String 69 is in the top
+# right vorner of the second to last xy layer of strings (minimally effected by
+# deep core.)
+FLASHER_STRINGS = [69]
 
 # If this flag is set to true, the gradient is averaged over an entire string
 # before fed to the optimizer. This is not the same as evaluating string
@@ -70,7 +61,7 @@ INITIAL_ABS = [0.01 for i in range(N_LAYERS)]
 MIN_ABS = 0.001
 
 # The maximum number of training steps to perform.
-MAX_STEPS = 100000000
+MAX_STEPS = 200
 
 # The number of hits to rescale to. We rescale to this fixed amount of hits
 # every time to make the loss more comparable for different emitter DOMs.  The

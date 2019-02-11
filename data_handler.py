@@ -73,6 +73,8 @@ class DataHandler:
             return None
 
         df = pd.read_csv(fname, header=None).fillna(0.)
+        # drop time information
+        df = df.drop(df.columns[[1]], axis=1)
         return df.values
 
     def get_string_iterator(self, n_threads=4, q_size=4):
