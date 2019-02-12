@@ -162,7 +162,7 @@ if __name__ == '__main__':
     # --------------------------------- Run -----------------------------------
     logger.message("Starting...")
     step = 1
-    while step < settings.MAX_STEPS:
+    while step <= settings.MAX_STEPS:
         for string in settings.FLASHER_STRINGS:
             logger.message("Loading first batch for string {}..."
                            .format(string), step)
