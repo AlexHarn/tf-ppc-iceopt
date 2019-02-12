@@ -1,5 +1,4 @@
 import tensorflow as tf
-# import numpy as np
 
 # --------------------------------- General -----------------------------------
 # The random seed to use. Seed or False. Kind of pointless at this point,
@@ -40,7 +39,7 @@ PHOTON_PATH = '/net/big-tank/POOL/users/aharnisch/iceopt_photons/'
 # errors. String 36 is in the middle of deep core. String 69 is in the top
 # right vorner of the second to last xy layer of strings (minimally effected by
 # deep core.)
-FLASHER_STRINGS = [69]
+FLASHER_STRINGS = [36]
 
 # If this flag is set to true, the gradient is averaged over an entire string
 # before fed to the optimizer. This is not the same as evaluating string
@@ -52,9 +51,8 @@ FLASHER_STRINGS = [69]
 # If it is set to False the gradient is applied on every dom batch each time.
 GRADIENT_AVERAGING = True
 
-# depth, scatc, absc, delta_t = np.loadtxt('icemodel.dat', unpack=True)
+# The initial absorption coefficients to start with.
 INITIAL_ABS = [0.01 for i in range(N_LAYERS)]
-# INITIAL_ABS = absc[::-1]
 
 # The smallest allowed absorption coeffizient, values below are clipped on
 # every step
