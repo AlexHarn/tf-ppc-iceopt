@@ -62,7 +62,7 @@ MIN_ABS = 0.001
 MAX_STEPS = 200
 
 # The number of hits to rescale to. We rescale to this fixed amount of hits
-# every time to make the loss more comparable for different emitter DOMs.  The
+# every time to make the loss more comparable for different emitter DOMs. The
 # reason we have to rescale at all is the fact that we don't know how many
 # photons have been emitted on data.
 RESCALED_HITS = 100000
