@@ -27,7 +27,7 @@ TF_HITLIST_LEN = 700000
 ICE_MODEL_PATH = '/home/aharnisch/modded-PPC/real/ice/'
 
 # ------------------------------- Flasher Data --------------------------------
-DATA_PATH = '/net/big-tank/POOL/users/aharnisch/fake_flasher_data/'
+DATA_PATH = '/net/big-tank/POOL/users/aharnisch/flasher_data/charge_only'
 
 # ----------------------------- Simulation Data -------------------------------
 # The simulated photon data directory
@@ -51,6 +51,11 @@ FLASHER_STRINGS = [36]
 # If it is set to False the gradient is applied on every dom batch each time.
 GRADIENT_AVERAGING = True
 
+# The objective function to use, options:
+#   Simple Poisson
+#   Model Error
+LOSS = 'Model Error'
+
 # The initial absorption coefficients to start with.
 INITIAL_ABS = [0.01 for i in range(N_LAYERS)]
 
@@ -73,7 +78,8 @@ RESCALED_HITS = 100000
 INITIAL_LEARNING_RATE = 0.001
 # True or False to activate/deactivate learning rate decay
 LEARNING_DECAY = False
-# Decay modes: Linear or Exponential
+# Decay modes, obtions:
+#   Linear or Exponential
 LEARNING_DECAY_MODE = 'Exponential'
 # decrease the INITIAL_LEARNING_RATE every LEARNING_STEPS steps by
 # LEARNING_DECR linearly or exponentially

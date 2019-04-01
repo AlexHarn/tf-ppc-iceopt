@@ -57,13 +57,22 @@ hits_true_rescaled = hits_true*settings.RESCALED_HITS/tf.reduce_sum(hits_true)
 hits_pred_rescaled = hits_pred*settings.RESCALED_HITS \
     / tf.reduce_sum(tf.stop_gradient(hits_pred))
 
-# Dimas likelihood (not really), take the logarithm for stability
-mu = (hits_pred_rescaled + hits_true_rescaled)/2
-logLR_doms = hits_pred_rescaled*(
-    tf.log(mu) - tf.log(hits_pred_rescaled)) + \
-    hits_true_rescaled*(tf.log(mu) - tf.log(hits_true_rescaled))
-loss = -tf.reduce_sum(tf.where(tf.is_nan(logLR_doms),
-                               tf.zeros_like(logLR_doms), logLR_doms))
+# definine the objective function
+if settings.LOSS == 'Simple Poisson':
+    mu = (hits_pred_rescaled + hits_true_rescaled)/2
+    logLR_doms = hits_pred_rescaled*(
+        tf.log(mu) - tf.log(hits_pred_rescaled)) + \
+        hits_true_rescaled*(tf.log(mu) - tf.log(hits_true_rescaled))
+    loss = -tf.reduce_sum(tf.where(tf.is_nan(logLR_doms),
+                                   tf.zeros_like(logLR_doms), logLR_doms))
+elif settings.LOSS == 'Model Error':
+    logR_doms = tf.log(hits_pred_rescaled/hits_true_rescaled)
+    loss = tf.sqrt(tf.nn.moments(tf.where(tf.is_nan(logR_doms),
+                                          tf.zeros_like(logR_doms), logR_doms),
+                                 axes=[0])[1])
+else:
+    raise ValueError(settings.LOSS + " is not a supported objective function!")
+
 
 # crate variable for learning rate
 tf_learning_rate = tf.Variable(settings.INITIAL_LEARNING_RATE,
@@ -170,10 +179,6 @@ if __name__ == '__main__':
                     in string_iter(string):
                 logger.message("Loaded next batch. DOM is {}".format(dom),
                                step)
-
-                # calculate the scaling factor
-                scale = settings.TF_HITLIST_LEN/len(simulated_photons)
-                logger.message("Scaling factor is {0:.3f}".format(scale), step)
 
                 # initialize tf data variables
                 session.run(
