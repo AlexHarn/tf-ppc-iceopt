@@ -27,7 +27,7 @@ TF_HITLIST_LEN = 700000
 ICE_MODEL_PATH = '/home/aharnisch/modded-PPC/real/ice/'
 
 # ------------------------------- Flasher Data --------------------------------
-DATA_PATH = '/net/big-tank/POOL/users/aharnisch/flasher_data/charge_only'
+DATA_PATH = '/net/big-tank/POOL/users/aharnisch/flasher_data/charge_only/'
 
 # ----------------------------- Simulation Data -------------------------------
 # The simulated photon data directory
