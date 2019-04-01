@@ -175,10 +175,12 @@ if __name__ == '__main__':
         for string in settings.FLASHER_STRINGS:
             logger.message("Loading first batch for string {}..."
                            .format(string), step)
+            n_doms = 0
             for dom, data_hits, simulated_photons \
                     in string_iter(string):
                 logger.message("Loaded next batch. DOM is {}".format(dom),
                                step)
+                n_doms += 1
 
                 # initialize tf data variables
                 session.run(
@@ -229,7 +231,7 @@ if __name__ == '__main__':
                 result = session.run([model.abs_coeff, reset_negative])[0]
 
                 # get the loss
-                step_loss = session.run(tf_step_loss)
+                step_loss = session.run(tf_step_loss)/n_doms
 
                 # log everything
                 logger.log(step, [step_loss] + result.tolist())
