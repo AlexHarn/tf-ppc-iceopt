@@ -40,9 +40,6 @@ init_data = [tf_data_hits.assign(tf_data_hits_placeholder),
 # initialize the model
 model = Model(settings.INITIAL_ABS, settings.ICE_MODEL_PATH)
 
-# define operation to reset trained parameters
-reset_paras = model.abs_coeff.assign(settings.INITIAL_ABS)
-
 # define hitlists
 hits_true = tf_data_hits
 hits_pred = model.tf_expected_hits(tf_simulated_photons)
@@ -139,13 +136,13 @@ else:  # No gradient averaging
     optimize = optimizer.minimize(loss)
 
 # create operations to clip coefficients
-clipped = tf.where(model.abs_coeff < settings.MIN_ABS,
-                   tf.ones_like(model.abs_coeff)*settings.MIN_ABS,
-                   model.abs_coeff)
-clipped = tf.where(model.abs_coeff > settings.MAX_ABS,
-                   tf.ones_like(model.abs_coeff)*settings.MAX_ABS,
+clipped = tf.where(model.abs_inside < settings.MIN_ABS,
+                   tf.ones_like(model.abs_inside)*settings.MIN_ABS,
+                   model.abs_inside)
+clipped = tf.where(model.abs_inside > settings.MAX_ABS,
+                   tf.ones_like(model.abs_inside)*settings.MAX_ABS,
                    clipped)
-clip_coefficients = model.abs_coeff.assign(clipped)
+clip_coefficients = model.abs_inside.assign(clipped)
 
 if __name__ == '__main__':
     if settings.TF_CPU_ONLY:

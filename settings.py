@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 # --------------------------------- General -----------------------------------
 # The random seed to use. Seed or False. Kind of pointless at this point,
@@ -8,6 +9,9 @@ RANDOM_SEED = False
 # The number of layers to fit, which needs to be the same as in the respective
 # PPC configuration.
 N_LAYERS = 171
+FIRST_INSIDE_LAYER = 35
+N_INSIDE_LAYERS = 101
+
 N_DOMS = 5160
 
 # -------------------------------- TensorFlow ---------------------------------
@@ -27,7 +31,8 @@ TF_HITLIST_LEN = 700000
 ICE_MODEL_PATH = '/home/aharnisch/modded-PPC/real/ice/'
 
 # ------------------------------- Flasher Data --------------------------------
-DATA_PATH = '/net/big-tank/POOL/users/aharnisch/flasher_data/charge_only/'
+# DATA_PATH = '/net/big-tank/POOL/users/aharnisch/flasher_data/charge_only/'
+DATA_PATH = '/net/big-tank/POOL/users/aharnisch/fake_flasher_data/'
 
 # ----------------------------- Simulation Data -------------------------------
 # The simulated photon data directory
@@ -57,7 +62,13 @@ GRADIENT_AVERAGING = True
 LOSS = 'Model Error'
 
 # The initial absorption coefficients to start with.
-INITIAL_ABS = [0.01 for i in range(N_LAYERS)]
+depth, scatc, absc, delta_t = np.loadtxt(ICE_MODEL_PATH + 'icemodel.dat',
+                                         unpack=True)
+spice_absc = absc[::-1]
+
+INITIAL_ABS = spice_absc
+INITIAL_ABS[FIRST_INSIDE_LAYER:FIRST_INSIDE_LAYER + N_INSIDE_LAYERS] = \
+    [0.01 for i in range(N_INSIDE_LAYERS)]
 
 # The minimal and maximal allowed absorption coeffizient, values below are
 # clipped on every step

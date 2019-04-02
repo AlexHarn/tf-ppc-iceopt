@@ -15,8 +15,20 @@ class Model:
         The initial absorption coeffiecients for all layers
     """
     def __init__(self, initial_abs, ice_model_dir):
-        self.abs_coeff = tf.Variable(initial_abs,
-                                     dtype=settings.TF_FLOAT_PRECISION)
+        abs_above = tf.Variable(initial_abs[0:settings.FIRST_INSIDE_LAYER],
+                                dtype=settings.TF_FLOAT_PRECISION,
+                                trainable=False)
+        self.abs_inside = tf.Variable(
+            initial_abs[settings.FIRST_INSIDE_LAYER:settings.FIRST_INSIDE_LAYER
+                        + settings.N_INSIDE_LAYERS],
+            dtype=settings.TF_FLOAT_PRECISION)
+        abs_below = tf.Variable(initial_abs[settings.FIRST_INSIDE_LAYER +
+                                            settings.N_INSIDE_LAYERS:],
+                                dtype=settings.TF_FLOAT_PRECISION,
+                                trainable=False)
+
+        self.abs_coeff = tf.concat([abs_above, self.abs_inside, abs_below],
+                                   axis=0)
 
         # load the delta tau table
         depth, scatc, absc, delta_t = np.loadtxt(ice_model_dir+'icemodel.dat',
