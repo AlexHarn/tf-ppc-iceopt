@@ -59,9 +59,10 @@ LOSS = 'Model Error'
 # The initial absorption coefficients to start with.
 INITIAL_ABS = [0.01 for i in range(N_LAYERS)]
 
-# The smallest allowed absorption coeffizient, values below are clipped on
-# every step
+# The minimal and maximal allowed absorption coeffizient, values below are
+# clipped on every step
 MIN_ABS = 0.001
+MAX_ABS = 0.05
 
 # The maximum number of training steps to perform.
 MAX_STEPS = 200

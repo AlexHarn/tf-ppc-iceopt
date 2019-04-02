@@ -138,11 +138,14 @@ if settings.GRADIENT_AVERAGING:
 else:  # No gradient averaging
     optimize = optimizer.minimize(loss)
 
-# create operation to reset negative values
+# create operations to clip coefficients
 clipped = tf.where(model.abs_coeff < settings.MIN_ABS,
                    tf.ones_like(model.abs_coeff)*settings.MIN_ABS,
                    model.abs_coeff)
-reset_negative = model.abs_coeff.assign(clipped)
+clipped = tf.where(model.abs_coeff > settings.MAX_ABS,
+                   tf.ones_like(model.abs_coeff)*settings.MAX_ABS,
+                   clipped)
+clip_coefficients = model.abs_coeff.assign(clipped)
 
 if __name__ == '__main__':
     if settings.TF_CPU_ONLY:
@@ -204,7 +207,8 @@ if __name__ == '__main__':
                     step_loss = session.run([optimize, loss])[1]
 
                     # get updated parameters and reset negative coefficients
-                    result = session.run([model.abs_coeff, reset_negative])[0]
+                    result = session.run([model.abs_coeff,
+                                          clip_coefficients])[0]
 
                     # log everything
                     logger.log(step, [step_loss] + result.tolist())
@@ -228,7 +232,7 @@ if __name__ == '__main__':
                 session.run(apply_gradients)
 
                 # get updated parameters and reset negative coefficients
-                result = session.run([model.abs_coeff, reset_negative])[0]
+                result = session.run([model.abs_coeff, clip_coefficients])[0]
 
                 # get the loss
                 step_loss = session.run(tf_step_loss)/n_doms
