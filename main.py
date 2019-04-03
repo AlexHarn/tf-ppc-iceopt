@@ -156,7 +156,7 @@ if __name__ == '__main__':
     session.run(tf.global_variables_initializer())
 
     # initialize the logger
-    logger = Logger(logdir='./log/', overwrite=True)
+    logger = Logger(logdir=settings.LOG_DIR, overwrite=True)
     logger.register_variables(['loss'] + ['abs_coeff_pred_{}'.format(i) for i
                                           in range(settings.N_LAYERS)],
                               print_variables=['loss'])

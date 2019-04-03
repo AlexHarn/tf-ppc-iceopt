@@ -11,8 +11,10 @@ RANDOM_SEED = False
 N_LAYERS = 171
 FIRST_INSIDE_LAYER = 35
 N_INSIDE_LAYERS = 101
-
 N_DOMS = 5160
+
+# Path to the logdir to write to
+LOG_DIR = './log/'
 
 # -------------------------------- TensorFlow ---------------------------------
 TF_FLOAT_PRECISION = tf.float32
@@ -31,8 +33,7 @@ TF_HITLIST_LEN = 700000
 ICE_MODEL_PATH = '/home/aharnisch/modded-PPC/real/ice/'
 
 # ------------------------------- Flasher Data --------------------------------
-# DATA_PATH = '/net/big-tank/POOL/users/aharnisch/flasher_data/charge_only/'
-DATA_PATH = '/net/big-tank/POOL/users/aharnisch/fake_flasher_data/'
+DATA_PATH = '/net/big-tank/POOL/users/aharnisch/flasher_data/charge_only/'
 
 # ----------------------------- Simulation Data -------------------------------
 # The simulated photon data directory
@@ -44,7 +45,7 @@ PHOTON_PATH = '/net/big-tank/POOL/users/aharnisch/iceopt_photons/'
 # errors. String 36 is in the middle of deep core. String 69 is in the top
 # right vorner of the second to last xy layer of strings (minimally effected by
 # deep core.)
-FLASHER_STRINGS = [36]
+FLASHER_STRINGS = [80, 8, 81, 11, 82, 36, 83, 66, 84, 69, 85, 86]
 
 # If this flag is set to true, the gradient is averaged over an entire string
 # before fed to the optimizer. This is not the same as evaluating string
@@ -59,7 +60,7 @@ GRADIENT_AVERAGING = True
 # The objective function to use, options:
 #   Simple Poisson
 #   Model Error
-LOSS = 'Model Error'
+LOSS = 'Simple Poisson'
 
 # The initial absorption coefficients to start with.
 depth, scatc, absc, delta_t = np.loadtxt(ICE_MODEL_PATH + 'icemodel.dat',
